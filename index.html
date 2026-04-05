@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Yave — La llave de tu próximo hogar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#0F4C8A;--brand-l:#EBF3FF;--brand-d:#082F5A;
+  --green:#1DB87A;--green-l:#E6F9F0;
+  --amber:#E8900A;--amber-l:#FEF3DC;
+  --red:#D63030;--red-l:#FEEAEA;
+  --ink:#0D0D0D;--ink2:#444;--ink3:#888;--ink4:#C8D0DC;
+  --bg:#F6F8FC;--surface:#fff;--border:#E4EBF5;
+  --r:10px;--r2:16px;--r3:24px;
+  --sh:0 1px 3px rgba(0,0,0,.06);--sh2:0 4px 16px rgba(0,0,0,.09);--sh3:0 12px 40px rgba(0,0,0,.12);
+  --serif:'DM Serif Display',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;
+  --nav:60px;
+}
+html{font-size:15px}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input,select{font-family:var(--sans)}
+input[type=range]{accent-color:var(--brand);width:100%;cursor:pointer}
+input[type=checkbox]{accent-color:var(--brand);width:16px;height:16px;cursor:pointer}
+input,select{width:100%;padding:9px 12px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);color:var(--ink);font-size:.88rem;outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--brand)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#D0D9E8;border-radius:3px}
+
+/* LAYOUT */
+.page{display:none;min-height:calc(100vh - var(--nav));animation:fadeUp .3s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:var(--nav);display:flex;align-items:center;padding:0 20px;gap:0}
+.nav-logo{display:flex;align-items:center;gap:8px;cursor:pointer;margin-right:20px}
+.nav-logo-icon{width:30px;height:30px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif);font-size:16px}
+.nav-logo-text{font-family:var(--serif);font-size:1.15rem;color:var(--ink);letter-spacing:-.3px}
+.nav-link{padding:0 12px;height:var(--nav);display:flex;align-items:center;font-size:.86rem;font-weight:500;color:var(--ink3);border-bottom:2.5px solid transparent;cursor:pointer;transition:all .15s;text-decoration:none}
+.nav-link:hover,.nav-link.active{color:var(--brand)}
+.nav-link.active{border-bottom-color:var(--brand)}
+.nav-spacer{flex:1}
+.nav-user{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 10px;border-radius:var(--r);border:1.5px solid var(--border);background:#fff}
+.nav-avatar{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0}
+.nav-username{font-size:.83rem;font-weight:500;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-dropdown{position:absolute;right:20px;top:var(--nav);background:#fff;border-radius:var(--r2);border:1.5px solid var(--border);padding:5px;min-width:190px;box-shadow:var(--sh3);z-index:200;display:none}
+.nav-dropdown.open{display:block}
+.nav-dd-item{width:100%;padding:7px 12px;border:none;background:transparent;text-align:left;font-size:.83rem;color:var(--ink);cursor:pointer;border-radius:6px;display:block}
+.nav-dd-item:hover{background:var(--bg)}
+.nav-dd-item.danger{color:var(--red)}
+.nav-dd-sep{height:1px;background:var(--bg);margin:3px 0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--sans);font-size:.88rem}
+.btn-p{background:var(--brand);color:#fff;padding:9px 20px}.btn-p:hover{background:var(--brand-d)}
+.btn-s{background:#fff;color:var(--ink);padding:9px 20px;border:1.5px solid var(--border)}.btn-s:hover{border-color:var(--brand);color:var(--brand)}
+.btn-g{background:var(--green);color:#fff;padding:9px 20px}.btn-g:hover{background:#179A65}
+.btn-sm{padding:6px 13px;font-size:.8rem}
+.btn-lg{padding:12px 26px;font-size:.95rem}
+.btn-full{width:100%}
+.btn:disabled{opacity:.4;cursor:default;pointer-events:none}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge-g{background:var(--green-l);color:#0A7A4F}
+.badge-b{background:var(--brand-l);color:var(--brand)}
+.badge-a{background:var(--amber-l);color:#9A5C00}
+.badge-r{background:var(--red-l);color:var(--red)}
+.badge-gray{background:#F0F2F5;color:var(--ink3)}
+
+/* ALERTS */
+.alert{border-radius:var(--r);padding:10px 14px;font-size:.83rem;line-height:1.55;margin-bottom:10px}
+.alert-i{background:var(--brand-l);color:var(--brand)}
+.alert-s{background:var(--green-l);color:#0A7A4F}
+.alert-w{background:var(--amber-l);color:#9A5C00}
+.alert-r{background:var(--red-l);color:var(--red)}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--r2);border:1.5px solid var(--border);box-shadow:var(--sh)}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bg);font-size:.83rem}
+.tr:last-child{border-bottom:none}
+.fl{display:block;font-size:.75rem;font-weight:600;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.02em}
+
+/* PROGRESS */
+.prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-f{height:100%;border-radius:2px;transition:width .4s}
+
+/* PROP CARDS */
+.pcard{background:#fff;border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;border:1.5px solid var(--border)}
+.pcard:hover{transform:translateY(-2px);box-shadow:var(--sh3)}
+.pcard.fit-hi{border-color:var(--green)}
+.pcard.fit-ok{border-color:#A8E0C8}
+.pcard.fit-no{border-color:#FDDCDC}
+
+/* SCORE RING */
+.score-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-num{position:absolute;text-align:center}
+
+/* FIT BAR */
+.fbar{height:5px;border-radius:3px;background:#E8EEF6;overflow:hidden}
+.fbar-f{height:100%;border-radius:3px;transition:width .5s}
+
+/* STEPS */
+.steps{display:flex;gap:3px;margin-bottom:22px}
+.step{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}
+.step.done{background:var(--green)}
+.step.active{background:var(--brand)}
+
+/* TOGGLE VIEW */
+.vtog{display:flex;border-radius:var(--r);border:1.5px solid var(--border);overflow:hidden}
+.vtb{padding:6px 14px;border:none;background:transparent;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--ink3);transition:.15s;font-family:var(--sans)}
+.vtb.active{background:var(--brand);color:#fff}
+
+/* BUSCAR LAYOUT */
+.buscar-wrap{display:flex;flex-direction:row;height:calc(100vh - var(--nav));overflow:hidden}
+.buscar-sidebar{width:250px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.buscar-main{flex:1;overflow:hidden;position:relative}
+.buscar-list{height:100%;overflow-y:auto;padding:14px}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+
+/* MAP */
+.map-wrap{height:100%}
+.map-mini-cards{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:8px;overflow-x:auto;z-index:500;padding-bottom:2px}
+.map-mini-card{background:#fff;border-radius:var(--r2);border:1.5px solid var(--border);padding:10px 12px;cursor:pointer;flex-shrink:0;width:170px;box-shadow:var(--sh2)}
+.ym{background:#fff;border:2px solid var(--brand);border-radius:20px;padding:3px 8px;font-size:.68rem;font-weight:700;color:var(--brand);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer}
+.ym.hi{border-color:var(--green);color:var(--green)}
+.ym.lo{border-color:var(--amber);color:var(--amber)}
+.map-popup .leaflet-popup-content-wrapper{border-radius:12px;padding:0;border:1.5px solid var(--border);box-shadow:var(--sh3)}
+.map-popup .leaflet-popup-content{margin:0;width:210px!important}
+.map-popup .leaflet-popup-close-button{display:none}
+
+/* HERO */
+.hero{background:var(--brand);padding:64px 24px 72px;position:relative;overflow:hidden;text-align:center}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%, rgba(29,184,122,.18) 0%, transparent 60%)}
+.hero-inner{max-width:600px;margin:0 auto;position:relative}
+.hero h1{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.9rem);color:#fff;line-height:1.1;margin-bottom:16px;letter-spacing:-.02em}
+.hero h1 em{font-style:italic;color:#7DDCB0}
+.hero p{font-size:1rem;color:rgba(255,255,255,.75);line-height:1.65;margin-bottom:28px;max-width:460px;margin-left:auto;margin-right:auto}
+.hero-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-ghost{padding:11px 22px;border-radius:var(--r);border:1.5px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.85);font-size:.93rem;font-weight:500;cursor:pointer;font-family:var(--sans)}
+
+/* STATS BAR */
+.stats-bar{background:#fff;border-bottom:1px solid var(--border)}
+.stats-grid{max-width:740px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.stat-item{text-align:center;padding:18px 12px;border-right:1px solid var(--border)}
+.stat-val{font-family:var(--serif);font-size:1.7rem;color:var(--brand);line-height:1}
+.stat-lbl{font-size:.75rem;color:var(--ink3);margin-top:3px}
+
+/* HOW IT WORKS */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
+.step-card{border-radius:var(--r3);padding:24px 20px}
+.step-num{width:36px;height:36px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.2rem;color:#fff;margin-bottom:12px}
+.cta-dark{background:var(--ink);border-radius:var(--r3);padding:28px 32px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+
+/* AUTH PAGES */
+.auth-wrap{max-width:400px;margin:0 auto;padding:36px 20px}
+.auth-logo{width:42px;height:42px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif);font-size:18px;margin:0 auto 12px}
+.cu-btn{display:flex;align-items:center;gap:12px;padding:16px;border-radius:var(--r2);border:2px solid var(--brand);background:var(--brand-l);cursor:pointer;margin-bottom:14px}
+.cu-icon{width:44px;height:44px;border-radius:var(--r);background:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.divider-text{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:.75rem;color:var(--ink4)}
+.divider-line{flex:1;height:1px;background:var(--border)}
+
+/* SCORE ONBOARDING */
+.onboard-wrap{max-width:460px;margin:0 auto;padding:28px 20px}
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tipo-card{padding:12px;border-radius:var(--r2);border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .15s}
+.tipo-card.selected{border-color:var(--brand);background:var(--brand-l)}
+.tipo-card-title{font-size:.9rem;font-weight:700;margin-bottom:3px}
+.tipo-card-sub{font-size:.72rem;color:var(--ink3);line-height:1.5}
+.pv-check{background:#fff;border-radius:var(--r2);padding:12px 14px;border:1.5px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:14px}
+
+/* SLIDER ROW */
+.sli-row{margin-bottom:14px}
+.sli-row label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--ink3);margin-bottom:5px}
+.sli-row label span{font-weight:600;color:var(--brand)}
+
+/* CONSENT */
+.consent-main{display:flex;align-items:flex-start;gap:12px;padding:16px;border-radius:var(--r2);border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .15s;margin-bottom:12px}
+.consent-main.checked{border-color:var(--green)}
+.consent-cb{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all .15s}
+.consent-cb.checked{background:var(--green);border-color:var(--green)}
+.consent-expand{background:none;border:none;color:var(--brand);font-size:.75rem;cursor:pointer;padding:4px 0;font-family:var(--sans)}
+.consent-detail{margin-top:8px;border-top:1px solid var(--bg);padding-top:8px}
+.consent-detail-row{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--bg);font-size:.75rem}
+
+/* DETALLE PROP */
+.detalle-grid{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start}
+.detalle-sticky{position:sticky;top:calc(var(--nav) + 14px);background:#fff;border-radius:var(--r2);border:1.5px solid var(--border);padding:16px;box-shadow:var(--sh2)}
+.timeline{display:flex;align-items:center;gap:0;overflow-x:auto;margin-bottom:20px;padding-bottom:4px}
+.tl-item{display:flex;align-items:center;flex-shrink:0}
+.tl-line{width:18px;height:2px;background:var(--border)}
+.tl-line.done{background:var(--green)}
+.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tl-dot{width:20px;height:20px;border-radius:50%;background:var(--border);color:var(--ink4);display:flex;align-items:center;justify-content:center;font-size:.63rem;font-weight:700}
+.tl-dot.done{background:var(--green);color:#fff}
+.tl-dot.active{background:var(--brand);color:#fff;border:2px solid var(--brand)}
+.tl-lbl{font-size:.62rem;color:var(--ink4);font-weight:400;white-space:nowrap}
+.tl-lbl.active{color:var(--brand);font-weight:700}
+.tl-lbl.done{color:var(--green)}
+
+/* BANCO SELECT */
+.banco-opt{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);border:1.5px solid var(--border);background:#fff;cursor:pointer;margin-bottom:5px;transition:all .15s}
+.banco-opt.selected{border-color:var(--brand);background:var(--brand-l)}
+.banco-ini{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0}
+
+/* PANEL VENDEDOR */
+.pv-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.pv-tab{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--ink3);font-family:var(--sans);transition:all .15s}
+.pv-tab.active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+/* SCORE MUNICIPIO */
+.muni-row{display:grid;grid-template-columns:1fr 65px 85px 45px 40px;padding:8px 12px;gap:4px;cursor:pointer;border-bottom:1px solid var(--bg);transition:background .1s;align-items:center}
+.muni-row:hover,.muni-row.sel{background:var(--green-l)}
+.muni-detail{background:var(--green-l);padding:12px 14px;border:1px solid #A8E0C8}
+
+/* PORTAL BANCO */
+.portal-header{background:var(--brand);padding:18px 20px 0}
+.portal-tabs{display:flex;overflow-x:auto}
+.portal-tab{padding:8px 16px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:.83rem;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-family:var(--sans)}
+.portal-tab.active{color:#fff;font-weight:700;border-bottom-color:#fff}
+.portal-content{max-width:540px;margin:0 auto;padding:22px 20px}
+.banco-sel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.banco-sel-card{display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r2);border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:border-color .15s}
+.banco-sel-card:hover{border-color:var(--brand)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  :root{--nav:52px}
+  .nav-link{display:none}
+  .buscar-wrap{flex-direction:column;height:auto}
+  .buscar-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);flex-direction:row;flex-wrap:wrap;max-height:none}
+  .buscar-main{min-height:60vh}
+  .buscar-list{height:auto}
+  .cards-grid{grid-template-columns:1fr}
+  .detalle-grid{grid-template-columns:1fr}
+  .detalle-sticky{position:static}
+  .steps-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .cta-dark{flex-direction:column}
+  .hero{padding:48px 20px 56px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav" id="nav">
+  <div class="nav-logo" onclick="goTo('landing')">
+    <div class="nav-logo-icon">Y</div>
+    <span class="nav-logo-text">yave</span>
+  </div>
+  <div id="nav-links" style="display:none">
+    <a class="nav-link" onclick="goTo('buscar')" data-page="buscar">Buscar</a>
+    <a class="nav-link" onclick="goTo('vender')" data-page="vender">Vender</a>
+    <a class="nav-link" onclick="goTo('score')" data-page="score">Mi Score</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <div id="nav-auth-btns">
+    <button class="btn btn-s btn-sm" onclick="goTo('login')" style="margin-right:6px">Ingresar</button>
+    <button class="btn btn-p btn-sm" onclick="goTo('register')">Crear cuenta</button>
+  </div>
+  <div id="nav-user" style="display:none;position:relative">
+    <div class="nav-user" onclick="toggleDropdown()">
+      <div class="nav-avatar" id="nav-av">M</div>
+      <span class="nav-username" id="nav-name">Usuario</span>
+      <span style="font-size:.65rem;color:var(--ink4)">▾</span>
+    </div>
+    <div class="nav-dropdown" id="nav-dropdown">
+      <div id="nav-dd-info" style="padding:8px 12px 10px;border-bottom:1px solid var(--bg);margin-bottom:4px">
+        <div style="font-size:.86rem;font-weight:600" id="dd-fullname">María González</div>
+        <div style="font-size:.72rem;color:var(--ink3)" id="dd-rut">12.345.678-9</div>
+      </div>
+      <button class="nav-dd-item" onclick="closeDD();goTo('score')">Mi score y documentos</button>
+      <button class="nav-dd-item" onclick="closeDD();goTo('buscar')">Buscar propiedades</button>
+      <button class="nav-dd-item" onclick="closeDD();goTo('vender')">Vender</button>
+      <button class="nav-dd-item" onclick="closeDD();goTo('perfil_vendedor')">Panel vendedor</button>
+      <button class="nav-dd-item" onclick="closeDD();goTo('municipios')">Score por municipio 🔒</button>
+      <button class="nav-dd-item" onclick="closeDD();goTo('portal_banco')">Portal banco / mutuaria 🔒</button>
+      <div class="nav-dd-sep"></div>
+      <button class="nav-dd-item danger" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGES -->
+<div id="page-landing" class="page active"></div>
+<div id="page-register" class="page"></div>
+<div id="page-login" class="page"></div>
+<div id="page-score" class="page"></div>
+<div id="page-buscar" class="page"></div>
+<div id="page-propiedad" class="page"></div>
+<div id="page-vender" class="page"></div>
+<div id="page-perfil_vendedor" class="page"></div>
+<div id="page-municipios" class="page"></div>
+<div id="page-portal_banco" class="page"></div>
+
+<script>
+/* ═══ DATA ═══ */
+const UF=37000;
+const PROPS=[
+  {id:1,t:'Vista Irarrázaval 502',tip:'Departamento',dir:'Irarrázaval 2140, Dpto. 502',com:'Ñuñoa',uf:2950,sup:68,d:2,b:2,y:2018,col:'#1A3A5C',tag:'Subsidio',docs:11,tas:2596,lat:-33.4569,lng:-70.6108},
+  {id:2,t:'Casa Los Aromos',tip:'Casa',dir:'Los Aromos 890',com:'La Florida',uf:3400,sup:110,d:3,b:2,y:2005,col:'#2D5A27',tag:'',docs:9,tas:2992,lat:-33.5100,lng:-70.5919},
+  {id:3,t:'Teatinos 540 — Piso 12',tip:'Departamento',dir:'Teatinos 540, Dpto. 1201',com:'Santiago',uf:2200,sup:44,d:1,b:1,y:2024,col:'#3B2E5A',tag:'FOGAES · Subsidio',docs:11,tas:1936,lat:-33.4421,lng:-70.6582},
+  {id:4,t:'Providencia Premium',tip:'Departamento',dir:'Av. Providencia 2330',com:'Providencia',uf:5200,sup:90,d:3,b:2,y:2020,col:'#5A3A1A',tag:'',docs:11,tas:4576,lat:-33.4283,lng:-70.6127},
+  {id:5,t:'Bélgica 234 — Maipú',tip:'Casa',dir:'Bélgica 234',com:'Maipú',uf:2600,sup:95,d:3,b:2,y:2015,col:'#1A4A4A',tag:'',docs:7,tas:2288,lat:-33.5100,lng:-70.7586},
+  {id:6,t:'Vitacura Living',tip:'Departamento',dir:'Av. Vitacura 4200',com:'Vitacura',uf:9800,sup:130,d:3,b:3,y:2021,col:'#4A1A3A',tag:'',docs:11,tas:8624,lat:-33.3940,lng:-70.5793},
+];
+const BANCOS=[
+  {id:'be',n:'BancoEstado',c:'#0F4C8A',bg:'#EBF3FF',ini:'BE',sMin:640,t720:4.40,t680:4.80},
+  {id:'bci',n:'BCI',c:'#1A5C1A',bg:'#E6F4E6',ini:'BC',sMin:660,t720:4.35,t680:4.65},
+  {id:'sant',n:'Santander',c:'#8A0F0F',bg:'#FAEAEA',ini:'SA',sMin:670,t720:4.30,t680:4.60},
+  {id:'itau',n:'Itaú',c:'#8A5A0F',bg:'#FEF3DC',ini:'IT',sMin:650,t720:4.38,t680:4.68},
+];
+const REGIONES={
+  'Metropolitana':['Cerrillos','Cerro Navia','Conchalí','El Bosque','Estación Central','Huechuraba','Independencia','La Cisterna','La Florida','La Granja','La Pintana','La Reina','Las Condes','Lo Barnechea','Lo Espejo','Lo Prado','Macul','Maipú','Ñuñoa','Pedro Aguirre Cerda','Peñalolén','Providencia','Pudahuel','Quilicura','Quinta Normal','Recoleta','Renca','San Joaquín','San Miguel','San Ramón','Santiago','Vitacura','Buin','Calera de Tango','Colina','El Monte','Isla de Maipo','Lampa','Melipilla','Padre Hurtado','Paine','Peñaflor','Pirque','Puente Alto','San Bernardo','San José de Maipo','San Pedro','Talagante','Tiltil'],
+  'Valparaíso':['Valparaíso','Viña del Mar','Concón','Quilpué','Villa Alemana','San Antonio','Los Andes','Quillota','San Felipe','La Ligua','Calera','Casablanca','Cartagena','Algarrobo','El Quisco','El Tabo','Santo Domingo','Petorca','Papudo','Zapallar','Cabildo','La Cruz','Hijuelas','Nogales','Putaendo','Santa María','Calle Larga','Rinconada','San Esteban','Puchuncaví','Quintero'],
+  'Biobío':['Concepción','Talcahuano','Hualpén','Coronel','Lota','Chiguayante','San Pedro de la Paz','Penco','Tomé','Santa Juana','Hualqui','Los Ángeles','Chillán','Chillán Viejo','San Carlos','Arauco','Lebu','Cañete','Curanilahue','Los Álamos','Nacimiento','Mulchén','Laja','Cabrero','Yumbel'],
+  'La Araucanía':['Temuco','Padre Las Casas','Villarrica','Pucón','Lautaro','Angol','Victoria','Freire','Pitrufquén','Nueva Imperial','Carahue','Cunco','Loncoche','Gorbea','Perquenco','Traiguén','Purén'],
+  'O\'Higgins':['Rancagua','Machalí','San Fernando','Pichilemu','Rengo','Graneros','Mostazal','Codegua','Santa Cruz','Nancagua','Palmilla','Placilla'],
+  'Maule':['Talca','Curicó','Linares','Cauquenes','Constitución','Molina','San Javier','Parral','Villa Alegre','Longaví','Colbún'],
+  'Coquimbo':['La Serena','Coquimbo','Ovalle','Illapel','Los Vilos','Vicuña','Andacollo','Salamanca','Monte Patria'],
+  'Antofagasta':['Antofagasta','Calama','Tocopilla','Mejillones','Taltal','San Pedro de Atacama'],
+  'Tarapacá':['Iquique','Alto Hospicio','Pozo Almonte','Pica'],
+  'Atacama':['Copiapó','Caldera','Vallenar','Chañaral','Diego de Almagro','Tierra Amarilla'],
+  'Ñuble':['Chillán','Bulnes','Coihueco','San Carlos','Quirihue','Yungay','El Carmen','Pemuco'],
+  'Los Ríos':['Valdivia','La Unión','Osorno','Río Bueno','Futrono','Panguipulli','Lanco'],
+  'Los Lagos':['Puerto Montt','Puerto Varas','Osorno','Castro','Ancud','Calbuco','Frutillar','Llanquihue','Chonchi'],
+  'Arica y Parinacota':['Arica','Putre','Camarones','General Lagos'],
+  'Aysén':['Coyhaique','Aysén','Chile Chico','Cochrane','Natales'],
+  'Magallanes':['Punta Arenas','Puerto Natales','Porvenir','Puerto Williams'],
+};
+
+/* ═══ MATH ═══ */
+const amort=(r,p)=>{const m=r/12,n=p*12;return m*Math.pow(1+m,n)/(Math.pow(1+m,n)-1)};
+const ratioMax=pie=>{if(pie<15)return 0;return Math.max(.25,Math.min(.32,.25+(pie-15)/20*.07))};
+const calcTecho=(ing,pie,cae,p)=>{const rm=ratioMax(pie);if(!rm||!ing)return 0;return(ing*rm/amort(cae||.044,p||30))/(1-pie/100)};
+const fitPct=(C,P)=>{
+  if(!C||!C.ingreso)return 0;
+  const cae=C.pv&&P.uf<=4000?.044:.052;
+  const cuota=P.uf*UF*(1-C.pie/100)*amort(cae,30);
+  const ratio=cuota/C.ingreso;
+  const rm=ratioMax(C.pie);
+  const sMin=P.uf>6000?720:P.uf>4000?700:680;
+  if(C.score<sMin||ratio>rm||C.pie<15)return 0;
+  return Math.round((.35*Math.min((C.score-sMin)/100,1)+.30*Math.min(1-ratio/rm,1)+.20*Math.min((C.pie-15)/20,1)+.15*(C.pv&&P.uf<=4000?1:.5))*100);
+};
+const sCol=s=>s>=720?'#085041':s>=680?'#0A7A4F':s>=650?'#9A5C00':'#D63030';
+const fCol=f=>f>=50?'#0A7A4F':f>=25?'#9A5C00':'#D63030';
+const fLbl=f=>f>=75?'Zona cómoda':f>=50?'Califica bien':f>=25?'Al límite':'No califica';
+const fmtUF=v=>v.toLocaleString('es-CL')+' UF';
+const fmtK=v=>'$'+(v>=1e6?(v/1e6).toFixed(1)+'M':Math.round(v/1000)+'K');
+
+/* ═══ STATE ═══ */
+let state={
+  page:'landing', usuario:null,
+  perfil:{listo:false},
+  propDetail:null,
+  score:{step:0,tipo:'dep',region:'Metropolitana',comuna:'Santiago',pv:true,sc:700,ing:1200000,pie:20,docs:{},iaOk:false,consentOk:false,fetchDone:false},
+  buscar:{vista:'lista',tipo:'Todos',ufMax:12000,dorms:0,soloRango:false},
+  propEstado:'inicial',propBanco:null,propFirmando:false,propDocsVis:false,
+  vender:{step:0,uf:2950,sup:68,cons:'bueno',com:'Ñuñoa',docs:{},pub:false},
+  pvTab:'props',
+  muniSel:null,muniTab:'rank',
+  portalTab:'crit',portalBanco:null,
+  pb:{sMin:660,ltv:85,ratio:27,ing:900000,t720:4.35,t680:4.65,saved:false},
+  roi:{vol:80,conv:65},
+  consent:{accepted:false,expanded:false},
+  mapInstance:null,mapMarkers:[],
+};
+
+/* ═══ ROUTING ═══ */
+function goTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('page-'+page);
+  if(el){el.classList.add('active');window.scrollTo(0,0);}
+  state.page=page;
+  document.querySelectorAll('.nav-link').forEach(l=>{
+    l.classList.toggle('active',l.dataset.page===page);
+  });
+  render(page);
+}
+function render(page){
+  const el=document.getElementById('page-'+page);
+  if(!el)return;
+  const renders={landing:renderLanding,register:renderRegister,login:renderLogin,score:renderScore,buscar:renderBuscar,propiedad:renderPropiedad,vender:renderVender,perfil_vendedor:renderPerfilVendedor,municipios:renderMunicipios,portal_banco:renderPortalBanco};
+  if(renders[page])el.innerHTML=renders[page]();
+  afterRender(page);
+}
+function afterRender(page){
+  if(page==='buscar')initMap();
+  if(page==='score')bindScoreEvents();
+  if(page==='vender')bindVenderEvents();
+  if(page==='portal_banco')bindPortalEvents();
+}
+
+/* ═══ AUTH ═══ */
+function setUsuario(u){
+  state.usuario=u;
+  document.getElementById('nav-auth-btns').style.display='none';
+  document.getElementById('nav-links').style.display='';
+  document.getElementById('nav-user').style.display='';
+  document.getElementById('nav-av').textContent=(u.nombre||'U')[0];
+  document.getElementById('nav-name').textContent=u.nombre||'Usuario';
+  document.getElementById('dd-fullname').textContent=(u.nombre||'')+' '+(u.apellido||'');
+  document.getElementById('dd-rut').textContent=u.rut||'';
+}
+function logout(){
+  state.usuario=null;state.perfil={listo:false};
+  document.getElementById('nav-auth-btns').style.display='';
+  document.getElementById('nav-links').style.display='none';
+  document.getElementById('nav-user').style.display='none';
+  closeDD();goTo('landing');
+}
+function toggleDropdown(){document.getElementById('nav-dropdown').classList.toggle('open');}
+function closeDD(){document.getElementById('nav-dropdown').classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#nav-user'))closeDD();});
+
+
+/* ═══ HELPERS HTML ═══ */
+const h=(tag,cls,html,attrs='')=>`<${tag} class="${cls}" ${attrs}>${html}</${tag}>`;
+const btn=(lbl,cls,click,disabled='')=>`<button class="btn ${cls}" onclick="${click}" ${disabled}>${lbl}</button>`;
+const badge=(txt,cls)=>`<span class="badge badge-${cls}">${txt}</span>`;
+const alert=(txt,cls)=>`<div class="alert alert-${cls}">${txt}</div>`;
+const sli=(id,lbl,val,min,max,step,fmt)=>`<div class="sli-row"><label>${lbl}<span id="${id}-disp">${fmt(val)}</span></label><input type="range" id="${id}" min="${min}" max="${max}" value="${val}" step="${step}" oninput="document.getElementById('${id}-disp').textContent=((${fmt.toString()}))(+this.value);state.score.${id.split('-')[1]||id}=+this.value;if(state.page==='score')renderScorePreview()"></div>`;
+const scoreRing=(score,size)=>{const r=size/2-5,circ=2*Math.PI*r,pct=(score-300)/550,col=sCol(score);return`<div class="score-wrap" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" style="transform:rotate(-90deg);position:absolute"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#EEF1F8" stroke-width="5"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="5" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}" stroke-linecap="round"/></svg><div class="score-num"><div style="font-family:var(--serif);font-size:${size*.26}px;color:${col};line-height:1">${score}</div><div style="font-size:${size*.11}px;color:var(--ink3)">score</div></div></div>`};
+const fitRing=(fit,size)=>{const r=size/2-4,circ=2*Math.PI*r,col=fCol(fit);return`<div class="score-wrap" style="width:${size}px;height:${size}px;display:inline-flex"><svg width="${size}" height="${size}" style="transform:rotate(-90deg);position:absolute"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#EEF1F8" stroke-width="4"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-fit/100)}" stroke-linecap="round"/></svg><div class="score-num"><div style="font-size:${size*.2}px;font-weight:700;color:${col}">${fit}</div></div></div>`};
+
+/* ═══ LANDING ═══ */
+function renderLanding(){
+  return`<div class="hero"><div class="hero-inner">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:20px;padding:4px 14px;font-size:.73rem;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:18px;letter-spacing:.08em">NUEVA FORMA DE COMPRAR EN CHILE</div>
+    <h1>Sabe exactamente qué<br><em>casa puedes comprar</em></h1>
+    <p>Score hipotecario en 7 minutos. Techo real verificado. Pre-aprobaciones bancarias formales. Solo ves propiedades que puedes comprar.</p>
+    <div class="hero-btns">
+      ${btn('Calcular mi score →','btn-g btn-lg',"goTo('register')")}
+      <button class="btn-ghost" onclick="goTo('buscar')">Ver propiedades</button>
+    </div>
+  </div></div>
+  <div class="stats-bar"><div class="stats-grid">
+    ${[['7 min','para tu score'],['4 bancos','te pre-aprueban'],['60%','menos tiempo'],['100%','digital']].map(([v,l])=>`<div class="stat-item"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join('')}
+  </div></div>
+  <div style="max-width:760px;margin:0 auto;padding:52px 24px">
+    <div style="text-align:center;margin-bottom:34px">
+      <h2 style="font-family:var(--serif);font-size:2rem;color:var(--ink);margin-bottom:6px">¿Cómo funciona?</h2>
+      <p style="color:var(--ink3);font-size:.9rem">Tres pasos. Sin ir al banco.</p>
+    </div>
+    <div class="steps-grid">
+      ${[{n:'1',t:'Calcula tu score',d:'Sube documentos reales. La IA los procesa. Score verificado + pre-aprobaciones formales de bancos.',bg:'var(--brand-l)',nb:'var(--brand)'},
+         {n:'2',t:'Visita y oferta',d:'Agenda visitas solo para propiedades que puedes comprar. Fit score personalizado. Oferta con pre-aprobación adjunta.',bg:'var(--green-l)',nb:'var(--green)'},
+         {n:'3',t:'Cierra en digital',d:'Promesa con FEA y Clave Única. Documentos desbloqueados. El banco recibe el expediente automáticamente.',bg:'var(--amber-l)',nb:'var(--amber)'}
+       ].map(p=>`<div style="background:${p.bg};border-radius:var(--r3);padding:24px 20px">
+        <div class="step-num" style="background:${p.nb}">${p.n}</div>
+        <div style="font-size:.95rem;font-weight:600;margin-bottom:6px">${p.t}</div>
+        <div style="font-size:.82rem;color:var(--ink2);line-height:1.65">${p.d}</div>
+       </div>`).join('')}
+    </div>
+    <div class="cta-dark">
+      <div style="flex:1;min-width:180px">
+        <div style="font-family:var(--serif);font-size:1.4rem;color:#fff;margin-bottom:5px">¿Quieres vender?</div>
+        <div style="font-size:.83rem;color:rgba(255,255,255,.6);line-height:1.6">Sube tus documentos. La IA los verifica. Al publicar ves cuántos compradores pre-aprobados hay para tu propiedad.</div>
+      </div>
+      ${btn('Publicar propiedad →','btn-g btn-lg',"goTo('vender')")}
+    </div>
+  </div>`;
+}
+
+/* ═══ REGISTER ═══ */
+function renderRegister(){
+  return`<div class="auth-wrap">
+    <div style="text-align:center;margin-bottom:22px">
+      <div class="auth-logo">Y</div>
+      <h2 style="font-family:var(--serif);font-size:1.55rem;margin-bottom:3px">Crear tu cuenta Yave</h2>
+      <p style="font-size:.82rem;color:var(--ink3)">Gratuita · Sin tarjeta · 2 minutos</p>
+    </div>
+    <div class="cu-btn" id="cu-btn" onclick="loginCU()">
+      <div class="cu-icon">
+        <svg width="22" height="22" fill="none" viewBox="0 0 22 22"><rect x="3" y="8" width="16" height="11" rx="2" fill="white" opacity=".9"/><path d="M7 8V6a4 4 0 018 0v2" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="11" cy="14" r="1.5" fill="#0F4C8A"/></svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:.95rem;font-weight:700;color:var(--brand)">Entrar con Clave Única</div>
+        <div style="font-size:.75rem;color:#5A8AC0">Tu identidad del Estado · Sin formularios · Más seguro</div>
+      </div>
+      ${badge('Recomendado','b')}
+    </div>
+    <div class="divider-text"><div class="divider-line"></div><span>o ingresa tus datos</span><div class="divider-line"></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div><label class="fl">Nombre</label><input id="r-nombre" placeholder="María"></div>
+      <div><label class="fl">Apellido</label><input id="r-apellido" placeholder="González"></div>
+    </div>
+    <div style="margin-bottom:8px"><label class="fl">RUT</label><input id="r-rut" placeholder="12.345.678-9"></div>
+    <div style="margin-bottom:8px"><label class="fl">Email</label><input id="r-email" type="email" placeholder="tu@email.com"></div>
+    <div style="margin-bottom:14px"><label class="fl">Contraseña</label><input id="r-pw" type="password" placeholder="Mínimo 8 caracteres"></div>
+    ${btn('Crear cuenta →','btn-p btn-full',"registerEmail()")}
+    <div style="text-align:center;margin-top:14px;font-size:.83rem;color:var(--ink3)">
+      ¿Ya tienes cuenta? <button class="btn" style="background:none;color:var(--brand);font-weight:600;font-size:.83rem;padding:0" onclick="goTo('login')">Iniciar sesión</button>
+    </div>
+  </div>`;
+}
+function loginCU(){
+  const btn=document.getElementById('cu-btn');
+  if(btn)btn.style.opacity='.6';
+  setTimeout(()=>{
+    setUsuario({nombre:'María',apellido:'González',rut:'12.345.678-9',email:'maria@yave.cl',metodo:'cu'});
+    goTo('score');
+  },1600);
+}
+function registerEmail(){
+  const nombre=document.getElementById('r-nombre')?.value||'';
+  const email=document.getElementById('r-email')?.value||'';
+  if(!nombre||!email){alert('Completa nombre y email');return;}
+  setUsuario({nombre,apellido:document.getElementById('r-apellido')?.value||'',rut:document.getElementById('r-rut')?.value||'',email,metodo:'email'});
+  goTo('score');
+}
+
+/* ═══ LOGIN ═══ */
+function renderLogin(){
+  return`<div class="auth-wrap">
+    <div style="text-align:center;margin-bottom:22px">
+      <div class="auth-logo">Y</div>
+      <h2 style="font-family:var(--serif);font-size:1.55rem;margin-bottom:3px">Bienvenido de vuelta</h2>
+    </div>
+    <div class="cu-btn" onclick="loginCU()">
+      <div class="cu-icon"><svg width="22" height="22" fill="none" viewBox="0 0 22 22"><rect x="3" y="8" width="16" height="11" rx="2" fill="white" opacity=".9"/><path d="M7 8V6a4 4 0 018 0v2" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="11" cy="14" r="1.5" fill="#0F4C8A"/></svg></div>
+      <div><div style="font-size:.9rem;font-weight:700;color:var(--brand)">Entrar con Clave Única</div><div style="font-size:.75rem;color:#5A8AC0">Acceso instantáneo y seguro</div></div>
+    </div>
+    <div class="divider-text"><div class="divider-line"></div><span>o con email</span><div class="divider-line"></div></div>
+    <div style="margin-bottom:8px"><label class="fl">Email o RUT</label><input placeholder="tu@email.com"></div>
+    <div style="margin-bottom:14px"><label class="fl">Contraseña</label><input type="password" placeholder="Tu contraseña"></div>
+    ${btn('Ingresar','btn-p btn-full',"loginCU()")}
+    <div style="text-align:center;margin-top:14px;font-size:.83rem;color:var(--ink3)">
+      ¿No tienes cuenta? <button class="btn" style="background:none;color:var(--brand);font-weight:600;font-size:.83rem;padding:0" onclick="goTo('register')">Crear cuenta gratis</button>
+    </div>
+  </div>`;
+}
+
+
+/* ═══ SCORE ONBOARDING ═══ */
+function renderScore(){
+  const sc=state.score;
+  const u=state.usuario;
+  const p=state.perfil;
+  if(p.listo&&sc.step===0)return renderScoreResult();
+  const steps=['','','','','','',''];
+  let stepsHtml='<div class="steps">';
+  for(let i=0;i<7;i++)stepsHtml+=`<div class="step${i<sc.step?' done':i===sc.step?' active':''}"></div>`;
+  stepsHtml+='</div>';
+  const renderStep={
+    0:()=>`<div class="onboard-wrap">
+      ${stepsHtml}
+      <h2 style="font-family:var(--serif);font-size:1.55rem;margin-bottom:8px">Hola${u?' '+u.nombre:''}!</h2>
+      <p style="color:var(--ink3);font-size:.88rem;line-height:1.65;margin-bottom:20px">Calculamos tu score hipotecario y qué casa puedes comprar. Solo 4 pasos simples.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px">
+        ${[['Historial crediticio','CMF y DICOM automáticos'],['Capacidad de pago','Ingresos reales del SII'],['Pre-aprobaciones','Formales de bancos'],['Privacidad total','Tú decides qué se comparte']].map(([t,d])=>`<div style="background:var(--green-l);border-radius:var(--r);padding:12px;border:1px solid #B8EDD6"><div style="font-size:.82rem;font-weight:700;color:#0A7A4F;margin-bottom:3px">${t}</div><div style="font-size:.72rem;color:#2A7A5A;line-height:1.5">${d}</div></div>`).join('')}
+      </div>
+      ${btn('Comenzar →','btn-p btn-full btn-lg',"scoreStep(1)")}
+    </div>`,
+    1:()=>`<div class="onboard-wrap">
+      ${stepsHtml}
+      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">¿Cómo recibes tus ingresos?</h3>
+      <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px;line-height:1.5">Esto determina qué documentos necesitarás.</p>
+      <div class="tipo-grid">
+        <div class="tipo-card${sc.tipo==='dep'?' selected':''}" onclick="state.score.tipo='dep';renderInPlace('page-score',renderScore)">
+          <div class="tipo-card-title" style="color:${sc.tipo==='dep'?'var(--brand)':'var(--ink)'}">Empleado de empresa</div>
+          <div class="tipo-card-sub">Liquidaciones de sueldo · contrato indefinido o plazo fijo</div>
+        </div>
+        <div class="tipo-card${sc.tipo==='ind'?' selected':''}" onclick="state.score.tipo='ind';renderInPlace('page-score',renderScore)">
+          <div class="tipo-card-title" style="color:${sc.tipo==='ind'?'var(--brand)':'var(--ink)'}">Independiente</div>
+          <div class="tipo-card-sub">Boletas de honorarios · formulario 22 · empresa propia</div>
+        </div>
+      </div>
+      <div class="pv-check" onclick="state.score.pv=!state.score.pv;renderInPlace('page-score',renderScore)">
+        <input type="checkbox" ${sc.pv?'checked':''} onclick="event.stopPropagation()">
+        <div style="flex:1">
+          <div style="font-size:.92rem;font-weight:600">Esta sería mi primera vivienda</div>
+          <div style="font-size:.75rem;color:var(--ink3);margin-top:2px">Tasa CAE 4.4% (con subsidio) para propiedades ≤ 4.000 UF</div>
+        </div>
+        ${sc.pv?badge('+subsidio','g'):''}
+      </div>
+      <div style="display:flex;gap:8px">
+        ${btn('Atrás','btn-s',"scoreStep(0)")}
+        ${btn('Continuar →','btn-p',`"scoreStep(2)"`)}
+      </div>
+    </div>`,
+    2:()=>{
+      const comunas=REGIONES[sc.region]||[];
+      return`<div class="onboard-wrap">
+        ${stepsHtml}
+        <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:4px">¿Dónde vives hoy?</h3>
+        <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px;line-height:1.5">Donde vives actualmente — no donde quieres comprar. Lo usamos para tu perfil crediticio por zona.</p>
+        <div style="margin-bottom:12px">
+          <label class="fl">Región</label>
+          <select id="sel-region" onchange="state.score.region=this.value;const c=REGIONES[this.value]||[];state.score.comuna=c[0]||'';renderInPlace('page-score',renderScore)">
+            ${Object.keys(REGIONES).map(r=>`<option value="${r}"${r===sc.region?' selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div style="margin-bottom:16px">
+          <label class="fl">Comuna</label>
+          <select id="sel-comuna" onchange="state.score.comuna=this.value">
+            ${comunas.map(c=>`<option value="${c}"${c===sc.comuna?' selected':''}>${c}</option>`).join('')}
+          </select>
+          <div style="font-size:.72rem;color:var(--ink4);margin-top:4px">${comunas.length} comunas en ${sc.region}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          ${btn('Atrás','btn-s',"scoreStep(1)")}
+          ${btn('Continuar →','btn-p',"scoreStep(3)")}
+        </div>
+      </div>`;
+    },
+    3:()=>`<div class="onboard-wrap">
+      ${stepsHtml}
+      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Un paso antes de continuar</h3>
+      <p style="font-size:.88rem;color:var(--ink3);margin-bottom:16px;line-height:1.65">Para calcular tu score necesitamos consultar tu información financiera. Tú autorizas y puedes revocar cuando quieras.</p>
+      <div class="consent-main${sc.consentOk?' checked':''}" id="consent-main" onclick="state.score.consentOk=!state.score.consentOk;renderInPlace('page-score',renderScore)">
+        <div class="consent-cb${sc.consentOk?' checked':''}" id="consent-cb">
+          ${sc.consentOk?'<svg width="14" height="11" fill="none" viewBox="0 0 14 11"><path d="M1 5l4 4 8-8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:.92rem;font-weight:600;margin-bottom:3px">Autorizo a Yave a consultar mi información</div>
+          <div style="font-size:.8rem;color:var(--ink3);line-height:1.6">Historial crediticio (CMF · DICOM) · Deuda consolidada (REDEC) · Información tributaria (SII) · Documentos que yo suba.</div>
+          <button class="consent-expand" onclick="event.stopPropagation();state.score.consentExpanded=!state.score.consentExpanded;renderInPlace('page-score',renderScore)">${sc.consentExpanded?'▲ Ocultar detalle':'▼ Ver detalle completo'}</button>
+          ${sc.consentExpanded?`<div class="consent-detail">
+            ${[['CMF · DICOM / Equifax','Historial de pagos y créditos vigentes','Art. 9'],['REDEC','Deuda consolidada en todas las instituciones','Art. 9'],['SII Carpeta Tributaria','Ingresos declarados y tipo de actividad','Art. 9'],['Bancos que tú elijas','Solo con instituciones que selecciones','Art. 13']].map(([f,d,l])=>`<div class="consent-detail-row"><span style="font-weight:600;color:var(--ink);min-width:140px">${f}</span><span style="color:var(--ink3);flex:1">${d}</span><span style="color:var(--ink4)">${l}</span></div>`).join('')}
+          </div>`:''}
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--ink4);margin-bottom:14px;line-height:1.55">Datos protegidos bajo la <strong>Ley 19.628</strong>. Puedes revocar en cualquier momento desde tu perfil.</div>
+      <div style="display:flex;gap:8px">
+        ${btn('Atrás','btn-s',"scoreStep(2)")}
+        ${btn(sc.consentOk?'Continuar →':'Marca la casilla para continuar','btn-p',sc.consentOk?"scoreStep(4)":"",sc.consentOk?'':'disabled')}
+      </div>
+    </div>`,
+    4:()=>{
+      const docList=sc.tipo==='dep'?[{id:'liq1',n:'Liquidación de sueldo — mes anterior',req:true},{id:'liq2',n:'Liquidación de sueldo — hace 2 meses',req:true},{id:'liq3',n:'Liquidación de sueldo — hace 3 meses',req:true},{id:'contrato',n:'Contrato de trabajo vigente',req:true},{id:'antig',n:'Certificado de antigüedad laboral',req:true},{id:'afp',n:'Cartola AFP últimos 12 meses',req:true},{id:'cedula',n:'Cédula de identidad (ambos lados)',req:true},{id:'cta',n:'Estado de cuenta bancario x3',req:false}]:[{id:'f22a',n:'Formulario 22 — año anterior',req:true},{id:'f22b',n:'Formulario 22 — hace 2 años',req:true},{id:'bol',n:'Últimas 12 boletas de honorarios',req:true},{id:'car',n:'Carpeta tributaria SII — 2 años',req:true},{id:'cta',n:'Estado de cuenta bancario x3',req:true},{id:'cedula',n:'Cédula de identidad',req:true}];
+      const req=docList.filter(d=>d.req);
+      const done=req.filter(d=>sc.docs[d.id]==='ok');
+      const pct=Math.round(done.length/req.length*100);
+      const allDone=done.length===req.length;
+      return`<div class="onboard-wrap">
+        ${stepsHtml}
+        <div style="margin-bottom:12px">
+          ${alert('✓ Datos obtenidos automáticamente de CMF, DICOM y REDEC. Historial crediticio verificado.','s')}
+          <div class="card" style="padding:12px 14px;margin-bottom:12px">
+            ${[['Meses sin mora','48 meses','var(--green)'],['DICOM activo','Sin registros','var(--green)'],['Deudas vigentes','$420.000/mes','var(--ink)'],['Carga financiera','23%','var(--amber)'],['Créditos nuevos 6m','Ninguno','var(--green)']].map(([l,v,c])=>`<div class="tr"><span style="color:var(--ink3)">${l}</span><span style="font-weight:600;color:${c}">${v}</span></div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div><div style="font-size:.9rem;font-weight:700">Sube tus documentos (opcional)</div><div style="font-size:.73rem;color:var(--ink3);margin-top:2px">Con documentos obtienes pre-aprobación real</div></div>
+          ${badge(pct+'%',pct===100?'g':'gray')}
+        </div>
+        <div class="prog" style="margin-bottom:10px"><div class="prog-f" style="width:${pct}%;background:${allDone?'var(--green)':'var(--brand)'}"></div></div>
+        <div style="max-height:220px;overflow-y:auto;margin-bottom:10px">
+          ${docList.map(d=>{const st=sc.docs[d.id]||'';return`<div onclick="toggleDoc('${d.id}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);margin-bottom:4px;cursor:pointer;border:1.5px solid ${st==='ok'?'var(--green)':d.req?'#FDDCDC':'var(--border)'};background:${st==='ok'?'var(--green-l)':'#fff'};transition:all .15s">
+            <div style="width:22px;height:22px;border-radius:50%;background:${st==='ok'?'var(--green)':st==='load'?'var(--brand)':'var(--bg)'};color:${st==='ok'||st==='load'?'#fff':'var(--ink4)'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0">${st==='ok'?'✓':st==='load'?'…':'↑'}</div>
+            <div style="flex:1;font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.n}</div>
+            ${badge(st==='ok'?'✓':d.req?'req.':'opc.',st==='ok'?'g':d.req?'r':'gray')}
+          </div>`}).join('')}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${btn('Atrás','btn-s',"scoreStep(3)")}
+          ${allDone?btn('Procesar documentos con IA →','btn-g btn-full',"runIA()"):btn('Continuar →','btn-p btn-full',"scoreStep(5)")}
+        </div>
+        ${!allDone?'<p style="font-size:.7rem;color:var(--ink4);text-align:center;margin-top:5px">Sin documentos el score es estimado</p>':''}
+      </div>`;
+    },
+    5:()=>`<div class="onboard-wrap">
+      ${stepsHtml}
+      ${sc.iaOk?alert('✓ IA procesó tus documentos — datos extraídos y validados.','s'):alert('Sin documentos verificados. Ajusta los valores manualmente.','w')}
+      <div class="card" style="padding:14px;margin-bottom:14px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">${sc.iaOk?'Datos extraídos por IA de tus documentos':'Ajusta tus datos financieros'}</div>
+        ${sc.iaOk?'<div class="tr"><span style="color:var(--ink3)">Ingreso líquido mensual</span><span style="font-weight:600;color:var(--green)">$1.682.000 <span style="font-size:.68rem;font-weight:400">IA</span></span></div><div class="tr"><span style="color:var(--ink3)">Tipo contrato</span><span style="font-weight:600;color:var(--green)">Indefinido <span style="font-size:.68rem;font-weight:400">IA</span></span></div><div class="tr"><span style="color:var(--ink3)">Antigüedad</span><span style="font-weight:600;color:var(--green)">4 años 3 meses <span style="font-size:.68rem;font-weight:400">IA</span></span></div>':''}
+      </div>
+      <div class="sli-row">
+        <label>Ingreso líquido mensual <span id="ing-disp">${fmtK(sc.ing)}</span></label>
+        <input type="range" id="sli-ing" min="300000" max="4000000" value="${sc.ing}" step="50000" oninput="state.score.ing=+this.value;document.getElementById('ing-disp').textContent=fmtK(+this.value);renderScorePreview()">
+      </div>
+      <div class="sli-row">
+        <label>Pie disponible (%) <span id="pie-disp">${sc.pie}%</span></label>
+        <input type="range" id="sli-pie" min="0" max="50" value="${sc.pie}" step="1" oninput="state.score.pie=+this.value;document.getElementById('pie-disp').textContent=this.value+'%';renderScorePreview()">
+      </div>
+      <div class="sli-row">
+        <label>Score crediticio estimado <span id="sc-disp">${sc.sc} pts</span></label>
+        <input type="range" id="sli-sc" min="550" max="850" value="${sc.sc}" step="5" oninput="state.score.sc=+this.value;document.getElementById('sc-disp').textContent=this.value+' pts';renderScorePreview()">
+      </div>
+      <div id="score-preview" style="background:var(--brand-l);border-radius:var(--r);padding:10px 12px;margin-bottom:14px;font-size:.8rem;color:var(--brand)"></div>
+      <div style="display:flex;gap:8px">
+        ${btn('Atrás','btn-s',"scoreStep(4)")}
+        ${btn('Ver mi score →','btn-p btn-full',"scoreStep(6)")}
+      </div>
+    </div>`,
+    6:()=>{
+      const scFinal=sc.iaOk?Math.min(850,sc.sc+14):sc.sc;
+      const ingF=sc.iaOk?1682000:sc.ing;
+      const cae=sc.pv?.044:.052;
+      const tch=calcTecho(ingF,sc.pie,cae);
+      const cuota=tch>0?tch*(1-sc.pie/100)*amort(cae,30):0;
+      return`<div class="onboard-wrap" style="text-align:center;padding:16px 20px">
+        <div style="margin-bottom:6px">${badge(sc.iaOk?'Score real con documentos':'Score estimado',sc.iaOk?'g':'a')}</div>
+        <div style="margin:16px auto">${scoreRing(scFinal,100)}</div>
+        ${sc.iaOk?'<p style="font-size:.78rem;color:var(--green);font-weight:600;margin-bottom:8px">+14 pts vs. estimado · documentos verificados</p>':''}
+        <p style="font-size:.9rem;color:var(--ink3);line-height:1.65;margin-bottom:22px">Tu techo: <strong style="color:var(--ink)">${fmtUF(Math.round(tch/UF))}</strong><br>${sc.pv&&tch/UF<=4000?'✓ Subsidio tasa 4.4% CAE aplica':'Tasa CAE 5.2% (sin subsidio)'}</p>
+        ${btn('Ver propiedades que puedo comprar →','btn-p btn-full btn-lg',`"finishScore(${scFinal},${ingF},${tch})"`)}
+      </div>`;
+    },
+  };
+  return(renderStep[sc.step]||renderStep[0])();
+}
+function renderScoreResult(){
+  const p=state.perfil;
+  const cae=p.pv?.044:.052;
+  const tch=p.techo||0;
+  const cuota=tch>0?tch*(1-p.pie/100)*amort(cae,30):0;
+  const bestTasa=BANCOS.filter(b=>p.score>=b.sMin).reduce((mn,b)=>{const t=p.score>=720?b.t720:b.t680;return t<mn?t:mn},99);
+  return`<div style="max-width:540px;margin:0 auto;padding:28px 20px">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="margin-bottom:6px">${badge(p.iaVerified?'✓ Score real con documentos':'Score estimado',p.iaVerified?'g':'a')}</div>
+      <div style="margin:12px auto">${scoreRing(p.score,100)}</div>
+      <p style="font-size:.83rem;color:var(--ink3);margin-top:8px">${p.score>=720?'Excelente perfil crediticio':p.score>=680?'Buen perfil · calificable':p.score>=650?'Perfil calificable con condiciones':'Requiere mejoras'}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+      ${[[fmtUF(Math.round(tch/UF)),'Techo máximo','var(--green)'],[fmtK(Math.round(cuota))+'/mes','Cuota estimada','var(--brand)'],[bestTasa<99?bestTasa.toFixed(2)+'%':'—','Mejor tasa CAE','var(--green)']].map(([v,l,c])=>`<div class="card" style="padding:12px;text-align:center"><div style="font-size:1rem;font-weight:700;color:${c}">${v}</div><div style="font-size:.7rem;color:var(--ink3);margin-top:3px">${l}</div></div>`).join('')}
+    </div>
+    <h3 style="font-size:.88rem;font-weight:700;margin-bottom:10px">Pre-aprobaciones bancarias</h3>
+    ${BANCOS.map(b=>{const ap=p.score>=b.sMin&&p.iaVerified;const est=p.score>=b.sMin&&!p.iaVerified;const tasa=p.score>=720?b.t720:b.t680;return`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);border:1.5px solid ${ap?'var(--green)':'var(--border)'};background:${ap?'var(--green-l)':'#fff'};margin-bottom:6px">
+      <div class="banco-ini" style="background:${b.bg};color:${b.c}">${b.ini}</div>
+      <div style="flex:1"><div style="font-size:.88rem;font-weight:600">${b.n}</div>${ap?`<div style="font-size:.72rem;color:var(--ink3)">CAE ${tasa.toFixed(2)}%</div>`:''}</div>
+      ${ap?badge('Pre-aprobado ✓','g'):est?badge('Estimado','a'):badge('No disponible','gray')}
+    </div>`}).join('')}
+    ${!p.iaVerified?alert('Pre-aprobaciones estimadas. Sube tus documentos para obtener pre-aprobación formal que los bancos aceptan.','w'):''}
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      ${btn('Recalcular','btn-s',"state.score.step=1;renderInPlace('page-score',renderScore)")}
+      ${btn('Ver propiedades que puedo comprar →','btn-p btn-full',"goTo('buscar')")}
+    </div>
+  </div>`;
+}
+function renderScorePreview(){
+  const sc=state.score;
+  const cae=sc.pv?.044:.052;
+  const tch=calcTecho(sc.ing,sc.pie,cae);
+  const el=document.getElementById('score-preview');
+  if(el)el.innerHTML=`<strong>Con estos datos tu techo es: ${fmtUF(Math.round(tch/UF))}</strong><br>Cuota estimada: ${fmtK(Math.round(tch>0?tch*(1-sc.pie/100)*amort(cae,30):0))}/mes · ${sc.pv&&tch/UF<=4000?'Subsidio CAE 4.4% aplica':'CAE 5.2%'}`;
+}
+function scoreStep(n){state.score.step=n;renderInPlace('page-score',renderScore);}
+function toggleDoc(id){
+  const st=state.score.docs[id]||'';
+  if(st==='ok'){state.score.docs[id]='';renderInPlace('page-score',renderScore);return;}
+  state.score.docs[id]='load';
+  renderInPlace('page-score',renderScore);
+  setTimeout(()=>{state.score.docs[id]='ok';renderInPlace('page-score',renderScore);},400);
+}
+function runIA(){state.score.step=4;renderInPlace('page-score',renderScore);setTimeout(()=>{state.score.iaOk=true;state.score.step=5;renderInPlace('page-score',renderScore);},2000);}
+function finishScore(score,ing,techo){
+  const sc=state.score;
+  state.perfil={score,ingreso:ing,pie:sc.pie,pv:sc.pv,techo,listo:true,iaVerified:sc.iaOk,region:sc.region,comuna:sc.comuna};
+  goTo('buscar');
+}
+function bindScoreEvents(){if(state.score.step===5)renderScorePreview();}
+function renderInPlace(id,fn){const el=document.getElementById(id);if(el){el.innerHTML=fn();afterRender(id.replace('page-','));}}
+
+
+/* ═══ BUSCAR ═══ */
+function renderBuscar(){
+  const bs=state.buscar;const p=state.perfil;
+  const tuf=p.listo?Math.round(p.techo/UF):99999;
+  const filtered=PROPS.filter(pr=>bs.tipo==='Todos'||pr.tip===bs.tipo).filter(pr=>pr.uf<=bs.ufMax||bs.ufMax===12000).filter(pr=>bs.dorms===0||pr.d>=bs.dorms).filter(pr=>!bs.soloRango||pr.uf<=tuf).map(pr=>({...pr,fit:p.listo?fitPct(p,pr):pr.id<=3?78:pr.id<=5?62:25})).sort((a,b)=>b.fit-a.fit);
+  const sidebar=`<div class="buscar-sidebar">
+    ${p.listo?`<div style="background:var(--brand-l);border-radius:var(--r);padding:8px 10px;font-size:.75rem;color:var(--brand)"><strong>${fmtUF(tuf)}</strong> · Score ${p.score}${p.iaVerified?' ✓':''}</div>`:''}
+    <div><div class="fl">Vista</div><div class="vtog"><button class="vtb${bs.vista==='lista'?' active':''}" onclick="state.buscar.vista='lista';renderInPlace('page-buscar',renderBuscar)">☰ Lista</button><button class="vtb${bs.vista==='mapa'?' active':''}" onclick="state.buscar.vista='mapa';renderInPlace('page-buscar',renderBuscar);setTimeout(initMap,100)">◉ Mapa</button></div></div>
+    <div><div class="fl">Tipo</div><div style="display:flex;gap:5px;flex-wrap:wrap">${[['Todos','Todos'],['Departamento','Depto'],['Casa','Casa']].map(([v,l])=>`<button onclick="state.buscar.tipo='${v}';renderInPlace('page-buscar',renderBuscar)" style="padding:4px 10px;border-radius:20px;border:1.5px solid ${bs.tipo===v?'var(--brand)':'var(--border)'};background:${bs.tipo===v?'var(--brand)':'transparent'};color:${bs.tipo===v?'#fff':'var(--ink3)'};font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--sans)">${l}</button>`).join('')}</div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="fl">Precio máximo</span><span style="font-size:.72rem;color:var(--ink3)">${bs.ufMax<12000?bs.ufMax.toLocaleString('es-CL')+' UF':'Sin límite'}</span></div><input type="range" min="500" max="12000" value="${bs.ufMax}" step="100" oninput="state.buscar.ufMax=+this.value;this.parentElement.querySelector('.fl+span')||0;this.previousElementSibling&&(this.previousElementSibling.querySelector('span').textContent=this.value>=12000?'Sin límite':Number(this.value).toLocaleString('es-CL')+' UF');renderInPlace('page-buscar',renderBuscar)"></div>
+    <div><div class="fl">Dormitorios mín.</div><div style="display:flex;gap:5px">${[0,1,2,3].map(n=>`<button onclick="state.buscar.dorms=${n};renderInPlace('page-buscar',renderBuscar)" style="width:34px;height:30px;border-radius:var(--r);border:1.5px solid ${bs.dorms===n?'var(--brand)':'var(--border)'};background:${bs.dorms===n?'var(--brand)':'transparent'};color:${bs.dorms===n?'#fff':'var(--ink3)'};font-size:.8rem;font-weight:600;cursor:pointer;font-family:var(--sans)">${n===0?'T':n+'+'}</button>`).join('')}</div></div>
+    ${p.listo?`<label style="display:flex;align-items:center;gap:7px;font-size:.8rem;cursor:pointer;padding:7px 9px;border-radius:var(--r);border:1.5px solid var(--border)"><input type="checkbox" ${bs.soloRango?'checked':''} onchange="state.buscar.soloRango=this.checked;renderInPlace('page-buscar',renderBuscar)"> Solo mi rango</label>`:''}
+    <div style="margin-top:auto;font-size:.7rem;color:var(--ink4);text-align:center">${filtered.length} propiedades</div>
+  </div>`;
+  const cards=`<div class="buscar-list" id="buscar-list">
+    ${p.listo?`<div style="background:var(--brand-l);border-radius:var(--r);padding:8px 12px;margin-bottom:12px;font-size:.8rem;color:var(--brand)">Techo: <strong>${fmtUF(tuf)}</strong> · Score ${p.score}${p.iaVerified?' · ✓':''} · Fit calculado para cada propiedad</div>`:''}
+    <div class="cards-grid">
+      ${filtered.map(pr=>{
+        const cae=p.pv&&pr.uf<=4000?.044:.052;
+        const cuota=pr.uf*UF*(1-(p.pie||20)/100)*amort(cae,30);
+        const fitCls=pr.fit>=75?' fit-hi':pr.fit>=50?' fit-ok':pr.fit===0&&p.listo?' fit-no':'';
+        return`<div class="pcard${fitCls}" onclick="state.propDetail=PROPS.find(x=>x.id===${pr.id});state.propEstado='inicial';state.propBanco=null;state.propDocsVis=false;goTo('propiedad')">
+          <div style="height:145px;background:linear-gradient(135deg,${pr.col} 0%,${pr.col}BB 100%);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <div style="position:absolute;inset:0;opacity:.1;background:radial-gradient(circle at 20% 80%, rgba(255,255,255,.5) 0%, transparent 50%)"></div>
+            <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.3);border-radius:20px;padding:2px 9px;font-size:.68rem;font-weight:700;color:#fff">${pr.tip}</div>
+            <div style="font-size:40px;position:relative;z-index:1;filter:drop-shadow(0 3px 8px rgba(0,0,0,.3))">${pr.tip==='Casa'?'🏡':'🏢'}</div>
+            ${p.listo&&pr.fit>0?`<div style="position:absolute;top:8px;right:8px">${fitRing(pr.fit,42)}</div>`:''}
+            <div style="position:absolute;bottom:8px;left:8px;display:flex;gap:4px">
+              ${pr.tag?`<span style="background:rgba(29,184,122,.9);color:#fff;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px">${pr.tag}</span>`:''}
+              ${pr.docs<11?`<span style="background:rgba(232,144,10,.9);color:#fff;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px">${pr.docs}/11 docs</span>`:''}
+            </div>
+          </div>
+          <div style="padding:12px 14px">
+            <div style="font-size:.9rem;font-weight:700;margin-bottom:2px">${pr.t}</div>
+            <div style="font-size:.75rem;color:var(--ink3);margin-bottom:8px">${pr.dir} · ${pr.sup}m² · ${pr.d}D/${pr.b}B</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <div><div style="font-family:var(--serif);font-size:1.2rem;line-height:1">${fmtUF(pr.uf)}</div><div style="font-size:.7rem;color:var(--ink3)">≈ ${fmtK(pr.uf*UF)}</div></div>
+              ${p.listo&&pr.fit>0?`<div style="text-align:right"><div style="font-size:.8rem;font-weight:700;color:var(--ink3)">${fmtK(Math.round(cuota))}/mes</div><span class="badge badge-${pr.fit>=50?'g':'a'}">${fLbl(pr.fit)}</span></div>`:''}
+            </div>
+            ${p.listo&&pr.fit>0?`<div class="fbar" style="margin-top:7px"><div class="fbar-f" style="width:${pr.fit}%;background:${pr.fit>=50?'var(--green)':'var(--amber)'}"></div></div>`:''}
+            ${p.listo&&pr.fit===0?`<div style="margin-top:7px;font-size:.72rem;color:var(--red);background:var(--red-l);border-radius:6px;padding:2px 7px;display:inline-block">Fuera de tu rango</div>`:''}
+          </div>
+        </div>`;}).join('')}
+      ${!p.listo?`<div style="grid-column:1/-1;text-align:center;padding:28px 20px;background:var(--brand-l);border-radius:var(--r3);border:1.5px solid #BDD4F0;margin-top:8px"><div style="font-family:var(--serif);font-size:1.3rem;color:var(--brand);margin-bottom:6px">Calcula tu score para ver tu fit en cada propiedad</div>${btn('Calcular mi score →','btn-p',"goTo('score')")}</div>`:''}
+    </div>
+  </div>`;
+  const mapa=`<div style="height:100%;position:relative">
+    <div id="leaflet-map" style="height:100%;width:100%"></div>
+    <div class="map-mini-cards" id="mini-cards">
+      ${filtered.slice(0,6).map(pr=>`<div class="map-mini-card" onclick="state.propDetail=PROPS.find(x=>x.id===${pr.id});state.propEstado='inicial';state.propBanco=null;state.propDocsVis=false;goTo('propiedad')">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pr.t}</div>
+        <div style="font-family:var(--serif);font-size:.95rem;line-height:1;margin-bottom:4px">${fmtUF(pr.uf)}</div>
+        ${pr.fit>0?`<span class="badge badge-${pr.fit>=50?'g':'a'}">Fit ${pr.fit}</span>`:''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+  return`<div class="buscar-wrap">${sidebar}<div class="buscar-main">${bs.vista==='mapa'?mapa:cards}</div></div>`;
+}
+function initMap(){
+  if(state.mapInstance){state.mapInstance.remove();state.mapInstance=null;}
+  const el=document.getElementById('leaflet-map');
+  if(!el)return;
+  const map=L.map(el,{zoomControl:true}).setView([-33.46,-70.65],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+  state.mapInstance=map;
+  const p=state.perfil;const bs=state.buscar;const tuf=p.listo?Math.round(p.techo/UF):99999;
+  PROPS.filter(pr=>bs.tipo==='Todos'||pr.tip===bs.tipo).filter(pr=>pr.uf<=bs.ufMax||bs.ufMax===12000).filter(pr=>!bs.soloRango||pr.uf<=tuf).forEach(pr=>{
+    const fit=p.listo?fitPct(p,pr):pr.id<=3?78:pr.id<=5?62:25;
+    const cls=fit>=75?'hi':fit>=25?'':'lo';
+    const icon=L.divIcon({className:'',html:`<div class="ym ${cls}">${Math.round(pr.uf/1000)}k UF</div>`,iconSize:[null,null],iconAnchor:[35,15]});
+    const marker=L.marker([pr.lat,pr.lng],{icon}).addTo(map);
+    const html='<div style="cursor:pointer;font-family:var(--sans)" onclick="state.propDetail=PROPS.find(x=>x.id==='+pr.id+');state.propEstado=\'inicial\';state.propBanco=null;state.propDocsVis=false;goTo(\'propiedad\')">'
+      +'<div style="height:85px;background:'+pr.col+';display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:10px 10px 0 0">'+(pr.tip==='Casa'?'🏡':'🏢')+'</div>'
+      +'<div style="padding:9px 11px"><div style="font-weight:700;font-size:.83rem;color:#0D0D0D;margin-bottom:2px">'+pr.t+'</div>'
+      +'<div style="font-size:.7rem;color:#888;margin-bottom:5px">'+pr.sup+'m² · '+pr.d+'D/'+pr.b+'B · '+pr.y+'</div>'
+      +'<div style="font-size:.93rem;font-weight:700;color:#0D0D0D">'+fmtUF(pr.uf)+'</div>'
+      +(fit>0?'<span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:'+(fit>=50?'#E6F9F0':'#FEF3DC')+';color:'+(fit>=50?'#0A7A4F':'#9A5C00')+';font-size:.68rem;font-weight:700">Fit '+fit+'</span>':'')
+      +(pr.tag?'<span style="display:inline-block;margin-top:3px;padding:2px 7px;border-radius:20px;background:#E6F9F0;color:#0A7A4F;font-size:.68rem;font-weight:700">'+pr.tag+'</span>':'')
+      +'</div></div>';
+    marker.bindPopup(html,{className:'map-popup',maxWidth:230});
+  });
+}
+
+
+/* ═══ PROPIEDAD DETALLE ═══ */
+function renderPropiedad(){
+  const pr=state.propDetail;if(!pr)return'';
+  const p=state.perfil;const est=state.propEstado;
+  const fit=p.listo?fitPct(p,pr):72;
+  const cae=p.pv&&pr.uf<=4000?.044:.052;
+  const ppie=p.pie||20;
+  const cuota=pr.uf*UF*(1-ppie/100)*amort(cae,30);
+  const brecha=pr.uf-pr.tas;
+  const TL=['Interés','Visita','Oferta','Aceptada','Promesa','Escritura'];
+  const eIdx={inicial:0,visita_ok:1,oferta:2,aceptada:3,promesa:4,cerrado:5}[est]||0;
+  const timeline=`<div class="timeline">${TL.map((t,i)=>`<div class="tl-item">${i>0?`<div class="tl-line${i<=eIdx?' done':''}"></div>`:''}<div class="tl-dot-wrap"><div class="tl-dot${i<eIdx?' done':i===eIdx?' active':''}">${i<eIdx?'✓':i+1}</div><div class="tl-lbl${i===eIdx?' active':i<eIdx?' done':''}">${t}</div></div></div>`).join('')}</div>`;
+  let panel='';
+  if(est==='inicial'){
+    panel=`${btn(p.listo&&fit>=50?'Agendar visita (pre-aprobado)':'Agendar visita','btn-p btn-full',"state.propEstado='visita_ok';renderInPlace('page-propiedad',renderPropiedad)")}<p style="font-size:.7rem;color:var(--ink4);text-align:center;margin-top:6px">La visita es sin compromiso</p>`;
+  }else if(est==='visita_ok'){
+    const bancosHtml=BANCOS.filter(b=>!p.listo||p.score>=b.sMin).map(b=>`<div class="banco-opt${state.propBanco&&state.propBanco.id===b.id?' selected':''}" onclick="state.propBanco=BANCOS.find(x=>x.id==='${b.id}');renderInPlace('page-propiedad',renderPropiedad)"><div class="banco-ini" style="background:${b.bg};color:${b.c}">${b.ini}</div><div style="flex:1"><div style="font-size:.82rem;font-weight:600">${b.n}</div><div style="font-size:.7rem;color:var(--ink3)">${(p.score>=720?b.t720:b.t680).toFixed(2)}% CAE</div></div>${state.propBanco&&state.propBanco.id===b.id?'<span style="color:var(--brand)">✓</span>':''}</div>`).join('');
+    panel=`${alert('✓ Visita realizada. ¿Te convence la propiedad?','s')}<div class="fl" style="margin-bottom:6px">Elige tu banco para la oferta</div>${bancosHtml}<div style="display:flex;gap:7px;margin-top:10px">${btn('Hacer oferta →','btn-g btn-full',state.propBanco?"state.propEstado='oferta';renderInPlace('page-propiedad',renderPropiedad)":"",state.propBanco?'':'disabled')}${btn('No me convence','btn-s',"state.propEstado='inicial';renderInPlace('page-propiedad',renderPropiedad)")}</div>`;
+  }else if(est==='oferta'){
+    panel=`${alert(`✓ Oferta enviada con pre-aprobación ${state.propBanco?state.propBanco.n:''} adjunta. El vendedor tiene 48h para responder.`,'s')}${btn('Simular: vendedor acepta →','btn-p btn-full',"state.propEstado='aceptada';renderInPlace('page-propiedad',renderPropiedad)")}`;
+  }else if(est==='aceptada'){
+    panel=`${alert('✓ Vendedor aceptó tu oferta','s')}<div style="background:var(--brand-l);border-radius:var(--r);padding:10px;margin-bottom:10px;font-size:.78rem;color:var(--brand);line-height:1.65">Precio: ${fmtUF(pr.uf)}<br>Banco: ${state.propBanco?state.propBanco.n:''}<br>Penalidad: ${fmtUF(Math.round(pr.uf*.20))} (20%)<br>Plazo escritura: 90 días</div>${btn(state.propFirmando?'Firmando con FEA...':'Firmar promesa con Clave Única →','btn-g btn-full btn-lg',!state.propFirmando?"firmarPromesa()":"",state.propFirmando?'disabled':'')}<p style="font-size:.68rem;color:var(--ink4);text-align:center;margin-top:5px">FEA · Ley 19.799 · Notaría digital Ley 21.394</p>`;
+  }else if(est==='promesa'){
+    panel=`<div style="text-align:center"><div style="width:48px;height:48px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;margin:0 auto 10px">✓</div><div style="font-family:var(--serif);font-size:1.1rem;margin-bottom:4px">Promesa firmada</div><div style="font-size:.75rem;color:var(--ink3);margin-bottom:12px">FEA · Certificada · Ley 21.394</div>${alert('✓ Docs desbloqueados (30 días)<br>✓ Expediente enviado al banco<br>✓ Plazo escritura: 90 días','s')}<div style="font-size:.7rem;color:var(--ink4)">Penalidad incumplimiento: ${fmtUF(Math.round(pr.uf*.2))} · Acción ejecutiva directa</div></div>`;
+  }
+  return`<div style="max-width:800px;margin:0 auto;padding:22px 20px">
+    <button onclick="goTo('buscar')" style="background:none;border:none;font-size:.83rem;color:var(--ink3);cursor:pointer;margin-bottom:12px">← Volver</button>
+    ${timeline}
+    <div class="detalle-grid">
+      <div>
+        <div style="height:200px;background:linear-gradient(135deg,${pr.col} 0%,${pr.col}BB 100%);border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:16px;position:relative">${pr.tip==='Casa'?'🏡':'🏢'}${pr.tag?`<div style="position:absolute;top:12px;left:12px"><span class="badge badge-g">${pr.tag}</span></div>`:''}</div>
+        <h1 style="font-family:var(--serif);font-size:1.6rem;margin-bottom:4px">${pr.t}</h1>
+        <div style="font-size:.83rem;color:var(--ink3);margin-bottom:12px">${pr.dir} · ${pr.com} · ${pr.sup}m² · ${pr.d} dorms · ${pr.y}</div>
+        <div class="card" style="padding:14px;margin-bottom:12px">
+          ${[['Precio',fmtUF(pr.uf)+' · '+fmtK(pr.uf*UF),'var(--ink)'],['Pie ('+ppie+'%)',fmtUF(Math.round(pr.uf*ppie/100)),'var(--brand)'],['Crédito necesario',fmtUF(Math.round(pr.uf*(1-ppie/100))),'var(--ink)'],['Cuota estimada',fmtK(Math.round(cuota))+'/mes','var(--green)'],['Tasa CAE',cae===.044?'4.40% (subsidio)':'5.20%',cae===.044?'var(--green)':'var(--ink3)'],['Tasación bancaria (~88%)',fmtUF(pr.tas),brecha>500?'var(--amber)':'var(--green)']].map(([l,v,c])=>`<div class="tr"><span style="color:var(--ink3)">${l}</span><span style="font-weight:600;color:${c}">${v}</span></div>`).join('')}
+        </div>
+        ${brecha>300?alert(`⚠ Brecha tasación: ${fmtUF(brecha)}. El comprador debe cubrir esta diferencia adicional al pie.`,'w'):''}
+        ${p.listo?`<div style="background:${fit>=50?'var(--green-l)':'var(--amber-l)'};border-radius:var(--r2);padding:12px 14px;border:1.5px solid ${fit>=50?'#A8E0C8':'#F5D78E'};margin-bottom:12px"><div style="display:flex;align-items:center;gap:12px">${fitRing(fit,48)}<div><div style="font-size:1rem;font-weight:700">${fLbl(fit)}</div><div style="font-size:.78rem;color:var(--ink3)">Tu fit con esta propiedad</div></div></div></div>`:''}
+        <div class="card" style="overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--bg);display:flex;justify-content:space-between;align-items:center"><div style="font-size:.86rem;font-weight:700">Documentos legales</div>${badge(`${pr.docs}/11 docs ${pr.docs===11?'✓':'⚠'}`,pr.docs===11?'g':'a')}</div>
+          ${state.propDocsVis?`<div style="padding:12px 14px">${alert('✓ Promesa firmada — acceso 30 días','s')}${['Certificado de dominio','Hipotecas y gravámenes','No expropiación','Escritura de dominio','Recepción final DOM','Plano de la propiedad'].map(d=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--bg);font-size:.8rem"><span style="color:var(--green);font-weight:700">✓</span>${d}</div>`).join('')}</div>`:`<div style="padding:20px 14px;text-align:center"><div style="font-size:1.4rem;margin-bottom:7px;opacity:.4">🔒</div><div style="font-size:.83rem;font-weight:600;color:var(--ink3);margin-bottom:3px">Documentos bloqueados</div><div style="font-size:.75rem;color:var(--ink4)">Disponibles solo después de firmar la promesa</div></div>`}
+        </div>
+      </div>
+      <div class="detalle-sticky">
+        <div style="font-family:var(--serif);font-size:1.55rem">${fmtUF(pr.uf)}</div>
+        <div style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">≈ ${fmtK(pr.uf*UF)}</div>
+        ${panel}
+      </div>
+    </div>
+  </div>`;
+}
+function firmarPromesa(){
+  state.propFirmando=true;renderInPlace('page-propiedad',renderPropiedad);
+  setTimeout(()=>{state.propFirmando=false;state.propEstado='promesa';state.propDocsVis=true;renderInPlace('page-propiedad',renderPropiedad);},1800);
+}
+
+/* ═══ VENDER ═══ */
+function renderVender(){
+  const v=state.vender;
+  const ZM={'Ñuñoa':52,'Providencia':72,'Santiago':44,'Maipú':31,'Las Condes':88,'Vitacura':115,'La Florida':34};
+  const zm=ZM[v.com]||52;const mult=v.cons==='malo'?.88:v.cons==='excelente'?1.10:1;
+  const tb=Math.round(zm*mult*v.sup);const tas=Math.round(tb*.88);const brecha=v.uf-tas;
+  const pool=Math.round((v.uf<=4000?8400:2100)*(v.uf<=2200?1.3:1));
+  const DOC_L=[{id:'dom',n:'Certificado de dominio vigente'},{id:'hip',n:'Hipotecas y gravámenes (CBR)'},{id:'esc',n:'Escritura de dominio'},{id:'nexp',n:'Certificado no expropiación'},{id:'rec',n:'Recepción final DOM'},{id:'pla',n:'Plano de la propiedad'}];
+  const dn=Object.values(v.docs).filter(Boolean).length;const listo=dn===DOC_L.length;
+  if(v.pub)return`<div style="max-width:540px;margin:0 auto;padding:28px 20px;text-align:center"><div style="width:68px;height:68px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin:0 auto 14px">✓</div><h2 style="font-family:var(--serif);font-size:1.7rem;margin-bottom:7px">¡Propiedad publicada!</h2><p style="color:var(--ink3);margin-bottom:18px">Se notificó a <strong>${pool.toLocaleString('es-CL')} compradores</strong> con score compatible.</p>${alert('3 compradores zona cómoda ya la marcaron como favorita · Score ≥680 · Pueden firmar hoy','s')}${btn('Publicar otra propiedad','btn-p',"state.vender={step:0,uf:2950,sup:68,cons:'bueno',com:'Ñuñoa',docs:{},pub:false};renderInPlace('page-vender',renderVender)")}</div>`;
+  const steps3=`<div class="steps">${[0,1,2].map(i=>`<div class="step${i<v.step?' done':i===v.step?' active':''}"></div>`).join('')}</div>`;
+  if(v.step===0)return`<div style="max-width:560px;margin:0 auto;padding:28px 20px">${steps3}<h2 style="font-family:var(--serif);font-size:1.8rem;margin-bottom:10px">Vende más rápido</h2><p style="color:var(--ink3);font-size:.9rem;line-height:1.65;margin-bottom:24px">Solo llegan compradores pre-aprobados. La IA verifica tus documentos. Al publicar, sabes al instante cuántos pueden comprarte.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">${[['Compradores verificados','Solo pre-aprobados visitan'],['IA revisa docs','Alertas automáticas'],['Tasación digital','Valor real vs banco'],['Cierre digital','Promesa en minutos']].map(([t,d])=>`<div class="card" style="padding:13px 14px"><div style="font-size:.88rem;font-weight:700;margin-bottom:2px">${t}</div><div style="font-size:.75rem;color:var(--ink3)">${d}</div></div>`).join('')}</div>${btn('Publicar mi propiedad →','btn-p btn-full btn-lg',"state.vender.step=1;renderInPlace('page-vender',renderVender)")}`;
+  if(v.step===1)return`<div style="max-width:560px;margin:0 auto;padding:28px 20px">${steps3}<h3 style="font-size:1.05rem;font-weight:700;margin-bottom:14px">Datos y tasación digital</h3><div style="margin-bottom:8px"><label class="fl">Dirección completa</label><input placeholder="Av. Italia 1234, Dpto. 502"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"><div><label class="fl">Comuna</label><select id="v-com" onchange="state.vender.com=this.value;renderInPlace('page-vender',renderVender)">${Object.keys(ZM).map(c=>`<option value="${c}"${c===v.com?' selected':''}>${c}</option>`).join('')}</select></div><div><label class="fl">Rol SII</label><input placeholder="7402-12"></div></div><div class="sli-row"><label>Superficie útil (m²) <span id="sup-disp">${v.sup} m²</span></label><input type="range" min="20" max="300" value="${v.sup}" step="1" oninput="state.vender.sup=+this.value;document.getElementById('sup-disp').textContent=this.value+' m²';renderVenderTas()"></div><div class="sli-row"><label>Precio pedido (UF) <span id="vuf-disp">${v.uf.toLocaleString('es-CL')} UF</span></label><input type="range" min="500" max="12000" value="${v.uf}" step="50" oninput="state.vender.uf=+this.value;document.getElementById('vuf-disp').textContent=Number(this.value).toLocaleString('es-CL')+' UF';renderVenderTas()"></div><div style="margin-bottom:10px"><div class="fl">Conservación</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">${[['malo','Regular'],['bueno','Buen estado'],['excelente','Renovado']].map(([val,lbl])=>`<div onclick="state.vender.cons='${val}';renderInPlace('page-vender',renderVender)" style="padding:7px;border-radius:var(--r);border:1.5px solid ${v.cons===val?'var(--brand)':'var(--border)'};background:${v.cons===val?'var(--brand-l)':'#fff'};cursor:pointer;text-align:center;font-size:.8rem;font-weight:600;color:${v.cons===val?'var(--brand)':'var(--ink)'}">${lbl}</div>`).join('')}</div></div><div id="vender-tas">${renderVenderTasHtml()}</div><div style="display:flex;gap:8px">${btn('Atrás','btn-s',"state.vender.step=0;renderInPlace('page-vender',renderVender)")}${btn('Continuar →','btn-p',"state.vender.step=2;renderInPlace('page-vender',renderVender)")}</div></div>`;
+  if(v.step===2)return`<div style="max-width:560px;margin:0 auto;padding:28px 20px">${steps3}<h3 style="font-size:1.05rem;font-weight:700;margin-bottom:4px">Documentos legales</h3><p style="font-size:.8rem;color:var(--ink3);margin-bottom:12px">La IA verifica vigencia, formato y coherencia. Haz clic para marcar como subido.</p><div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span style="color:var(--ink3)">Completitud</span><span style="font-weight:600;color:${listo?'var(--green)':'var(--ink)'}">${Math.round(dn/DOC_L.length*100)}%</span></div><div class="prog" style="margin-bottom:10px"><div class="prog-f" style="width:${Math.round(dn/DOC_L.length*100)}%;background:${listo?'var(--green)':'var(--brand)'}"></div></div>${DOC_L.map(d=>`<div onclick="state.vender.docs['${d.id}']=!state.vender.docs['${d.id}'];renderInPlace('page-vender',renderVender)" style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);margin-bottom:4px;cursor:pointer;border:1.5px solid ${v.docs[d.id]?'var(--green)':'#FDDCDC'};background:${v.docs[d.id]?'var(--green-l)':'#fff'};transition:all .15s"><div style="width:24px;height:24px;border-radius:50%;background:${v.docs[d.id]?'var(--green)':'var(--bg)'};color:${v.docs[d.id]?'#fff':'var(--ink4)'};display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">${v.docs[d.id]?'✓':'↑'}</div><div style="flex:1;font-size:.83rem;font-weight:600">${d.n}</div>${badge(v.docs[d.id]?'subido':'requerido',v.docs[d.id]?'g':'r')}</div>`).join('')}<div style="display:flex;gap:8px;margin-top:12px">${btn('Atrás','btn-s',"state.vender.step=1;renderInPlace('page-vender',renderVender)")}${btn(listo?'Publicar →':'Faltan '+(DOC_L.length-dn),'btn-p',listo?"state.vender.pub=true;renderInPlace('page-vender',renderVender)":"",listo?'':'disabled')}</div></div>`;
+}
+function renderVenderTasHtml(){
+  const v=state.vender;const ZM={'Ñuñoa':52,'Providencia':72,'Santiago':44,'Maipú':31,'Las Condes':88,'Vitacura':115,'La Florida':34};
+  const zm=ZM[v.com]||52;const mult=v.cons==='malo'?.88:v.cons==='excelente'?1.10:1;
+  const tb=Math.round(zm*mult*v.sup);const tas=Math.round(tb*.88);const brecha=v.uf-tas;
+  return`<div class="card" style="padding:13px;margin-bottom:12px"><div style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Tasación digital estimada</div>${[['Valor comercial est.',tb.toLocaleString('es-CL')+' UF','var(--ink)'],['Tasación bancaria (~88%)',tas.toLocaleString('es-CL')+' UF',brecha>500?'var(--amber)':'var(--green)'],['Brecha precio / tasación',brecha.toLocaleString('es-CL')+' UF',brecha>500?'var(--red)':'var(--green)']].map(([l,val,c])=>`<div class="tr"><span style="color:var(--ink3)">${l}</span><span style="font-weight:600;color:${c}">${val}</span></div>`).join('')}${brecha>500?alert('Ajustar el precio amplía el pool de compradores.','w'):''}</div>`;
+}
+function renderVenderTas(){const el=document.getElementById('vender-tas');if(el)el.innerHTML=renderVenderTasHtml();}
+function bindVenderEvents(){if(state.vender.step===1)renderVenderTas();}
+
+
+/* ═══ PERFIL VENDEDOR ═══ */
+function renderPerfilVendedor(){
+  const u=state.usuario;const t=state.pvTab;
+  const PROPS_V=[{t:'Av. Italia 1234, Dpto. 502',uf:2950,docs:11,ofertas:2,visitas:3,ia:'ok'},{t:'Los Aromos 890',uf:3400,docs:7,ofertas:0,visitas:1,ia:'warn'}];
+  const OFERTAS_V=[{cp:'María G.',sc:734,banco:'BancoEstado',tasa:4.40,monto:2820},{cp:'Carlos R.',sc:698,banco:'BCI',tasa:4.65,monto:2680}];
+  const VISITAS_V=[{cp:'Sofía M.',sc:721,fecha:'Mié 10 may 10:00',st:'confirmada'},{cp:'Pedro A.',sc:661,fecha:'Jue 11 may 09:30',st:'pendiente'}];
+  const PROMESAS_V=[{cp:'Ana L.',uf:2950,banco:'Itaú',vence:'15 jun 2025',pen:590}];
+  const tabs=[['props','Propiedades'],['ofertas','Ofertas (2)'],['visitas','Visitas'],['promesas','Promesas (1)']];
+  let content='';
+  if(t==='props')content=PROPS_V.map(pr=>`<div class="card" style="padding:14px;margin-bottom:10px;border-color:${pr.ia==='ok'?'var(--green)':'var(--amber)'}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div><div style="font-size:.92rem;font-weight:700">${pr.t}</div><div style="font-size:.75rem;color:var(--ink3)">${pr.uf.toLocaleString('es-CL')} UF</div></div>${badge(pr.ia==='ok'?'IA ✓ Aprobado':'IA ⚠ Alertas',pr.ia==='ok'?'g':'a')}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">${[['Docs',pr.docs+'/11',pr.docs===11?'var(--green)':'var(--amber)'],['Ofertas',pr.ofertas,'var(--brand)'],['Visitas',pr.visitas,'var(--ink)']].map(([l,v,c])=>`<div style="background:var(--bg);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:.68rem;color:var(--ink3)">${l}</div><div style="font-size:1rem;font-weight:700;color:${c}">${v}</div></div>`).join('')}</div></div>`).join('');
+  else if(t==='ofertas')content=`${alert('Solo ves score y banco — no datos personales hasta aceptar.','i')}${OFERTAS_V.map(o=>`<div class="card" style="padding:14px;margin-bottom:10px;border-color:var(--brand)"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="font-size:.95rem;font-weight:700">${o.cp}</div>${badge('Pendiente','a')}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">${[['Score',o.sc,'var(--green)'],['Banco',o.banco,'var(--brand)'],['Aprobado',o.monto+' UF','#085041'],['Tasa',o.tasa+'%','var(--ink)']].map(([l,v,c])=>`<div style="background:var(--bg);border-radius:var(--r);padding:7px"><div style="font-size:.68rem;color:var(--ink3)">${l}</div><div style="font-size:.85rem;font-weight:700;color:${c}">${v}</div></div>`).join('')}</div><div style="display:flex;gap:7px">${btn('Aceptar oferta','btn-g btn-full','')}${btn('Rechazar','btn-s','')}</div></div>`).join('')}`;
+  else if(t==='visitas')content=`${alert('Solo compradores con score verificado pueden agendar visitas.','s')}${VISITAS_V.map(v=>`<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:var(--brand-l);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0">${v.cp[0]}</div><div style="flex:1"><div style="font-size:.9rem;font-weight:700">${v.cp}</div><div style="font-size:.73rem;color:var(--ink3)">${v.fecha} · Score ${v.sc}</div></div>${badge(v.st,v.st==='confirmada'?'g':'a')}</div>`).join('')}`;
+  else if(t==='promesas')content=PROMESAS_V.map(pr=>`<div class="card" style="padding:14px;margin-bottom:10px;border-color:var(--green)"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="font-size:.95rem;font-weight:700">${pr.cp}</div>${badge('Firmada ✓','g')}</div>${[['Banco',pr.banco],['Precio',pr.uf.toLocaleString('es-CL')+' UF'],['Penalidad (20%)',pr.pen.toLocaleString('es-CL')+' UF'],['Plazo escritura',pr.vence]].map(([l,v])=>`<div class="tr"><span style="color:var(--ink3)">${l}</span><span style="font-weight:600">${v}</span></div>`).join('')}${alert('Docs visibles al comprador · 30 días · Acción ejecutiva directa ante incumplimiento','w')}</div>`).join('');
+  return`<div style="max-width:680px;margin:0 auto;padding:22px 20px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div style="width:44px;height:44px;border-radius:50%;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#0A7A4F;flex-shrink:0">${(u&&u.nombre||'V')[0]}</div><div style="flex:1"><div style="font-family:var(--serif);font-size:1.25rem">Hola ${u&&u.nombre||'Vendedor'}</div><div style="font-size:.75rem;color:var(--ink3)">Panel de vendedor · 2 propiedades</div></div>${btn('+ Nueva','btn-p btn-sm',"goTo('vender')")}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:18px">${[['2','propiedades'],['2','ofertas'],['3','visitas'],['1','promesa']].map(([v,l])=>`<div class="card" style="padding:12px;text-align:center"><div style="font-family:var(--serif);font-size:1.6rem;color:var(--brand);line-height:1">${v}</div><div style="font-size:.68rem;color:var(--ink3);margin-top:2px">${l}</div></div>`).join('')}</div><div class="pv-tabs">${tabs.map(([id,lbl])=>`<button class="pv-tab${t===id?' active':''}" onclick="state.pvTab='${id}';renderInPlace('page-perfil_vendedor',renderPerfilVendedor)">${lbl}</button>`).join('')}</div>${content}</div>`;
+}
+
+/* ═══ SCORE MUNICIPIO ═══ */
+function renderMunicipios(){
+  const COMUNAS=[{n:'Vitacura',s:768,p25:730,p75:810,ing:5800000,pie:38,pop:89000,tend:1},{n:'Las Condes',s:752,p25:710,p75:790,ing:4100000,pie:32,pop:318000,tend:2},{n:'Providencia',s:738,p25:690,p75:780,ing:3200000,pie:28,pop:142000,tend:4},{n:'Ñuñoa',s:721,p25:678,p75:762,ing:2400000,pie:24,pop:208000,tend:6},{n:'La Reina',s:718,p25:674,p75:758,ing:2200000,pie:23,pop:93000,tend:5},{n:'Santiago',s:683,p25:635,p75:728,ing:1650000,pie:18,pop:404000,tend:8},{n:'Maipú',s:671,p25:622,p75:714,ing:1420000,pie:17,pop:628000,tend:5},{n:'La Florida',s:668,p25:618,p75:710,ing:1380000,pie:16,pop:366000,tend:3},{n:'Puente Alto',s:651,p25:601,p75:694,ing:1180000,pie:15,pop:568000,tend:7},{n:'Recoleta',s:644,p25:595,p75:686,ing:1100000,pie:15,pop:148000,tend:11}];
+  const MIGR=[{from:'Santiago',to:'Providencia',cant:1560,mot:'Consolidación patrimonial'},{from:'Puente Alto',to:'La Florida',cant:1240,mot:'Mejor conectividad'},{from:'Maipú',to:'Estación Central',cant:980,mot:'Cercanía al trabajo'},{from:'Recoleta',to:'Ñuñoa',cant:870,mot:'Upgrade de barrio'},{from:'La Florida',to:'Peñalolén',cant:720,mot:'Mayor espacio'},{from:'Providencia',to:'Las Condes',cant:540,mot:'Upgrade patrimonial'}];
+  const t=state.muniTab;const sel=state.muniSel;
+  const af=amort(.044,30);
+  let content='';
+  if(t==='rank'){
+    content=`<div class="card" style="overflow:hidden"><div style="display:grid;grid-template-columns:1fr 65px 85px 45px 40px;padding:7px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;gap:4px"><span>COMUNA</span><span style="text-align:right">SCORE</span><span style="text-align:right">INGRESO</span><span style="text-align:right">PIE</span><span style="text-align:right">YOY</span></div>${COMUNAS.map(c=>{const isSel=sel===c.n;const pool=Math.round(c.pop*.12*.55);const pMax=Math.round(c.ing*.29/af/UF/.75);const pMin=Math.round(c.ing*.22/af/UF/.80);return`<div><div class="muni-row${isSel?' sel':''}" onclick="state.muniSel=state.muniSel==='${c.n}'?null:'${c.n}';renderInPlace('page-municipios',renderMunicipios)"><span style="font-size:.86rem;font-weight:600">${c.n}</span><span style="font-size:.88rem;font-weight:700;color:${sCol(c.s)};text-align:right">${c.s}</span><span style="font-size:.75rem;color:var(--ink3);text-align:right">${fmtK(c.ing)}</span><span style="font-size:.75rem;color:var(--ink3);text-align:right">${c.pie}%</span><span style="font-size:.75rem;font-weight:700;color:${c.tend>=8?'#085041':c.tend>=5?'var(--amber)':'var(--ink4)'};text-align:right">+${c.tend}%</span></div>${isSel?`<div class="muni-detail"><div style="font-size:.83rem;font-weight:700;color:#0A7A4F;margin-bottom:8px">${c.n} — detalle institucional</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:7px">${[['P25–P75',c.p25+'–'+c.p75],['Pool ≥680',pool.toLocaleString('es-CL')],['Rango UF óptimo',pMin+'–'+pMax]].map(([l,v])=>`<div style="background:#fff;border-radius:var(--r);padding:8px"><div style="font-size:.67rem;color:var(--ink3)">${l}</div><div style="font-size:.88rem;font-weight:700;color:#0A7A4F">${v}</div></div>`).join('')}</div><div style="font-size:.75rem;color:#0A7A4F;line-height:1.55">Proyectos entre ${pMin} y ${pMax} UF tienen el mayor pool de compradores locales en ${c.n}.</div></div>`:''}</div>`}).join('')}</div>`;
+  }else{
+    content=`${alert('El perfil se genera en la comuna de residencia actual. Diseñar proyectos mirando solo el score histórico de la zona subestima la demanda real de compradores migrantes.','i')}${MIGR.map(m=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg);font-size:.85rem"><span style="padding:2px 10px;border-radius:20px;background:var(--bg);font-size:.75rem;font-weight:600;min-width:90px;text-align:center">${m.from}</span><span style="color:var(--ink4);font-size:1.1rem">→</span><span style="padding:2px 10px;border-radius:20px;background:var(--green-l);color:#0A7A4F;font-size:.75rem;font-weight:700;min-width:90px;text-align:center">${m.to}</span><span style="font-weight:700;color:var(--brand)">${m.cant.toLocaleString('es-CL')}</span><span style="font-size:.73rem;color:var(--ink3);flex:1">${m.mot}</span></div>`).join('')}`;
+  }
+  return`<div style="max-width:720px;margin:0 auto;padding:22px 20px">${alert('🔒 Vista exclusiva — bancos, mutuarias e inmobiliarias. Los perfiles se generan en la <strong>comuna de residencia actual</strong> del usuario.','w')}<div class="pv-tabs">${[['rank','Ranking comunas'],['migr','Flujos migración']].map(([id,lbl])=>`<button class="pv-tab${t===id?' active':''}" onclick="state.muniTab='${id}';renderInPlace('page-municipios',renderMunicipios)">${lbl}</button>`).join('')}</div>${content}</div>`;
+}
+
+/* ═══ PORTAL BANCO ═══ */
+function renderPortalBanco(){
+  const t=state.portalTab;const pb=state.pb;const b=state.portalBanco;
+  const BALL=[...BANCOS,{id:'hs',n:'Hip. Security',c:'#0f766e',bg:'#f0fdfa',ini:'HS'},{id:'ml',n:'MetLife',c:'#0369a1',bg:'#f0f9ff',ini:'ML'}];
+  let content='';
+  if(t==='crit'){
+    if(!b){
+      content=`${alert('🔒 Los criterios se cifran con AES-256 con la clave de tu institución. Yave no puede leerlos.','w')}<div style="font-size:.9rem;font-weight:600;margin-bottom:12px">Selecciona tu institución</div><div class="banco-sel-grid">${BALL.map(bk=>`<div class="banco-sel-card" onclick="state.portalBanco=BANCOS.find(x=>x.id==='${bk.id}')||{id:'${bk.id}',n:'${bk.n}',c:'${bk.c}',bg:'${bk.bg}',ini:'${bk.ini}'};renderInPlace('page-portal_banco',renderPortalBanco)"><div class="banco-ini" style="background:${bk.bg};color:${bk.c}">${bk.ini}</div><div style="font-size:.88rem;font-weight:700">${bk.n}</div></div>`).join('')}</div>`;
+    }else{
+      content=`<button onclick="state.portalBanco=null;renderInPlace('page-portal_banco',renderPortalBanco)" style="background:none;border:none;font-size:.82rem;color:var(--ink3);cursor:pointer;margin-bottom:12px">← Cambiar institución</button><div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border-radius:var(--r2);border:2px solid ${b.c};margin-bottom:14px"><div class="banco-ini" style="background:${b.bg};color:${b.c};width:40px;height:40px;border-radius:10px">${b.ini}</div><div style="flex:1"><div style="font-size:.95rem;font-weight:700">${b.n}</div><div style="font-size:.72rem;color:var(--ink3)">Criterios de riesgo hipotecario</div></div>${badge('🔒 AES-256','a')}</div><div class="card" style="padding:14px;margin-bottom:10px"><div style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Criterios de elegibilidad</div><div class="sli-row"><label>Score mínimo habilitante <span id="smin-d">${pb.sMin}</span></label><input type="range" id="pb-smin" min="580" max="760" value="${pb.sMin}" step="5" oninput="state.pb.sMin=+this.value;document.getElementById('smin-d').textContent=this.value"></div><div class="sli-row"><label>LTV máximo (%) <span id="ltv-d">${pb.ltv}%</span></label><input type="range" id="pb-ltv" min="70" max="95" value="${pb.ltv}" step="1" oninput="state.pb.ltv=+this.value;document.getElementById('ltv-d').textContent=this.value+'%'"></div><div class="sli-row"><label>Ratio cuota/ingreso máx. (%) <span id="ratio-d">${pb.ratio}%</span></label><input type="range" id="pb-ratio" min="20" max="35" value="${pb.ratio}" step="1" oninput="state.pb.ratio=+this.value;document.getElementById('ratio-d').textContent=this.value+'%'"></div><div class="sli-row"><label>Ingreso mínimo mensual <span id="ing-d">${fmtK(pb.ing)}</span></label><input type="range" id="pb-ing" min="500000" max="2000000" value="${pb.ing}" step="50000" oninput="state.pb.ing=+this.value;document.getElementById('ing-d').textContent=fmtK(+this.value)"></div></div><div class="card" style="padding:14px;margin-bottom:10px"><div style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Tasas CAE por tramo de score</div><div class="sli-row"><label>Score 720+ <span id="t720-d">${pb.t720.toFixed(2)}%</span></label><input type="range" min="3.0" max="6.0" value="${pb.t720}" step="0.05" oninput="state.pb.t720=+this.value;document.getElementById('t720-d').textContent=(+this.value).toFixed(2)+'%'"></div><div class="sli-row"><label>Score 680–719 <span id="t680-d">${pb.t680.toFixed(2)}%</span></label><input type="range" min="3.5" max="7.0" value="${pb.t680}" step="0.05" oninput="state.pb.t680=+this.value;document.getElementById('t680-d').textContent=(+this.value).toFixed(2)+'%'"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">${[['720+',pb.t720,'#085041'],['680–719',pb.t680,'#9A5C00'],['<680',(pb.t680+.35).toFixed(2),'var(--red)']].map(([l,v,c])=>`<div style="background:var(--bg);border-radius:var(--r);padding:8px;text-align:center"><div style="font-size:.68rem;color:var(--ink3)">${l}</div><div style="font-size:1.05rem;font-weight:700;color:${c}">${v}%</div></div>`).join('')}</div></div><button id="pb-save" onclick="state.pb.saved=true;this.textContent='✓ Criterios guardados y cifrados';this.style.background='var(--green)';setTimeout(()=>{state.pb.saved=false;this.textContent='Guardar criterios (cifrado AES-256) ↗';this.style.background='${b.c}';},2500)" style="width:100%;padding:12px;border-radius:var(--r2);border:none;background:${b.c};color:#fff;font-size:.92rem;font-weight:700;cursor:pointer;font-family:var(--sans)">Guardar criterios (cifrado AES-256) ↗</button><p style="font-size:.7rem;color:var(--ink4);text-align:center;margin-top:5px">Cifrado con clave privada de ${b.n}. Yave no puede leerlos.</p>`;
+    }
+  }else if(t==='roi'){
+    const vol=state.roi.vol;const conv=state.roi.conv;
+    const ahorro=Math.round((600000-75000)*vol);const saas=350000;const roi=Math.round((ahorro-saas)/saas*100);
+    content=`<h3 style="font-family:var(--serif);font-size:1.4rem;margin-bottom:4px">Calculadora de ROI</h3><p style="font-size:.83rem;color:var(--ink3);margin-bottom:16px">Ajusta el volumen de tu operación.</p><div class="card" style="padding:16px;margin-bottom:14px"><div class="sli-row"><label>Solicitudes hipotecarias por mes <span id="vol-d">${vol} solicitudes</span></label><input type="range" min="10" max="300" value="${vol}" step="5" oninput="state.roi.vol=+this.value;document.getElementById('vol-d').textContent=this.value+' solicitudes';renderROINumbers()"></div><div class="sli-row"><label>Tasa de conversión a crédito (%) <span id="conv-d">${conv}%</span></label><input type="range" min="20" max="90" value="${conv}" step="5" oninput="state.roi.conv=+this.value;document.getElementById('conv-d').textContent=this.value+'%';renderROINumbers()"></div></div><div id="roi-numbers" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">${renderROINumbersHtml()}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div style="background:var(--bg);border-radius:var(--r2);border:1.5px solid var(--border);overflow:hidden"><div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase">Sin Yave — hoy</div><div style="padding:10px 12px">${[['Costo por solicitud',fmtK(600000),'var(--red)'],['Costo mensual',fmtK(600000*vol),'var(--red)'],['Tiempo evaluación','45 días hábiles','var(--ink3)'],['Tasa rechazo 1a eval.','35%','var(--red)']].map(([l,v,c])=>`<div class="tr"><span style="color:var(--ink3);font-size:.75rem">${l}</span><span style="font-weight:700;color:${c};font-size:.78rem">${v}</span></div>`).join('')}</div></div><div style="background:var(--green-l);border-radius:var(--r2);border:1.5px solid #A8E0C8;overflow:hidden"><div style="padding:8px 12px;border-bottom:1px solid #A8E0C8;font-size:.72rem;font-weight:700;color:#085041;text-transform:uppercase">Con Yave</div><div style="padding:10px 12px">${[['Costo por lead calif.',fmtK(75000),'#085041'],['Costo mensual',fmtK(75000*vol),'#085041'],['Tiempo evaluación','18 días hábiles','#085041'],['Tasa rechazo est.','8%','#085041']].map(([l,v,c])=>`<div class="tr"><span style="color:#2A7A5A;font-size:.75rem">${l}</span><span style="font-weight:700;color:${c};font-size:.78rem">${v}</span></div>`).join('')}</div></div></div><div style="font-size:.7rem;color:var(--ink4);line-height:1.6">* Costos estimados basados en datos de industria hipotecaria chilena 2024. Proyecciones referenciales.</div>`;
+  }else if(t==='cmf'){
+    const HOY=['Score orientativo al comprador','Matching comprador-propiedad','Verificación IA de documentos','Tasación digital referencial','Score por municipio (institucional)','Promesa de compraventa digital'];
+    const RPSF_L=['Pre-aprobación formal bancaria (carta)','Asesoría crediticia regulada','Vinculación formal proceso de originación'];
+    content=`<h3 style="font-family:var(--serif);font-size:1.4rem;margin-bottom:4px">Hoja de ruta regulatoria</h3><p style="font-size:.83rem;color:var(--ink3);margin-bottom:16px;line-height:1.6">Qué puede usar tu institución hoy y qué requiere el registro RPSF ante la CMF.</p><div class="card" style="padding:16px;margin-bottom:14px"><div style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px">Cronograma RPSF</div>${[['Hoy','MVP operativo + piloto informal','Score orientativo · promesa digital · sin RPSF','var(--green)',true],['Mes 1–2','Constitución SpA + docs CMF','Giro exclusivo · políticas internas · ciberseguridad','var(--brand)',false],['Mes 2–3','Presentación formal ante CMF','Expediente completo + fee de registro','var(--brand)',false],['Mes 3–6','Evaluación CMF (60–90 días hábiles)','Pueden solicitar documentación complementaria','var(--amber)',false],['Mes 5–7','RPSF obtenido','Pre-aprobación formal activa · originación vinculada','#534AB7',false]].map((ti,i)=>`<div style="display:flex;gap:12px;margin-bottom:${i<4?'16px':'0'}"><div style="width:14px;height:14px;border-radius:50%;background:${ti[4]?ti[3]:'#fff'};border:2px solid ${ti[3]};flex-shrink:0;margin-top:2px"></div><div><div style="display:flex;gap:8px;align-items:baseline;margin-bottom:2px"><span style="font-size:.68rem;font-weight:700;color:${ti[3]};min-width:48px">${ti[0]}</span><span style="font-size:.86rem;font-weight:600">${ti[1]}</span></div><div style="font-size:.72rem;color:var(--ink3);line-height:1.5">${ti[2]}</div></div></div>`).join('')}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div style="background:var(--green-l);border-radius:var(--r2);border:1.5px solid #A8E0C8;overflow:hidden"><div style="background:#C8F0DF;padding:8px 12px;border-bottom:1px solid #A8E0C8;font-size:.72rem;font-weight:700;color:#085041;text-transform:uppercase">Disponible hoy</div><div style="padding:10px 12px">${HOY.map(item=>`<div style="display:flex;gap:7px;padding:4px 0;font-size:.78rem"><span style="color:var(--green);font-weight:700">✓</span><span>${item}</span></div>`).join('')}</div></div><div style="background:var(--red-l);border-radius:var(--r2);border:1.5px solid #FDDCDC;overflow:hidden"><div style="background:#FDDCDC;padding:8px 12px;border-bottom:1px solid #FDDCDC;font-size:.72rem;font-weight:700;color:var(--red);text-transform:uppercase">Requiere RPSF</div><div style="padding:10px 12px">${RPSF_L.map(item=>`<div style="display:flex;gap:7px;padding:4px 0;font-size:.78rem"><span style="color:var(--red);font-weight:700">○</span><span>${item}</span></div>`).join('')}</div></div></div>${alert('<strong>¿Podemos hacer un piloto hoy?</strong> Sí. El piloto puede operar con score orientativo y matching de propiedades, sin vincular formalmente el proceso de originación.','w')}`;
+  }
+  return`<div><div class="portal-header"><div style="max-width:540px;margin:0 auto"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">🏦</div><div><div style="font-size:.95rem;font-weight:700;color:#fff">Portal Institucional</div><div style="font-size:.7rem;color:rgba(255,255,255,.6)">Bancos · Mutuarias · Acceso privado</div></div></div><div class="portal-tabs">${[['crit','Criterios de riesgo'],['roi','Dashboard ROI'],['cmf','Hoja de ruta CMF']].map(([id,lbl])=>`<button class="portal-tab${t===id?' active':''}" onclick="state.portalTab='${id}';renderInPlace('page-portal_banco',renderPortalBanco)">${lbl}</button>`).join('')}</div></div></div><div class="portal-content">${content}</div></div>`;
+}
+function renderROINumbersHtml(){
+  const vol=state.roi.vol;const ahorro=Math.round((600000-75000)*vol);const saas=350000;const roi=Math.round((ahorro-saas)/saas*100);
+  return[[fmtK(ahorro),'Ahorro mensual est.','var(--green)'],[roi+'%','ROI vs. costo SaaS','var(--brand)'],['+'+(Math.round(vol*.92)-Math.round(vol*.65)),'Leads calificados extra','#085041']].map(([v,l,c])=>`<div class="card" style="padding:13px;text-align:center"><div style="font-family:var(--serif);font-size:1.7rem;color:${c};line-height:1;margin-bottom:3px">${v}</div><div style="font-size:.7rem;color:var(--ink3)">${l}</div></div>`).join('');
+}
+function renderROINumbers(){const el=document.getElementById('roi-numbers');if(el)el.innerHTML=renderROINumbersHtml();}
+function bindPortalEvents(){}
+
+/* ═══ INIT ═══ */
+function renderInPlace(id,fn){
+  const page=id.replace('page-','');
+  const el=document.getElementById(id);
+  if(el){el.innerHTML=fn();afterRender(page);}
+}
+goTo('landing');
+</script>
+</body>
+</html>
